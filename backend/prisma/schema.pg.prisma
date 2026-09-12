@@ -1,0 +1,143 @@
+// Production datamodel — identical models to prisma/schema.prisma, but wired
+// for a managed PostgreSQL database. Keep the two files in sync when models
+// change (only the generator/datasource block may differ).
+// This file is used by scripts/prepare-prod-migrations.js during deployment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  character    Character?
+  quests       Quest[]
+  xpHistory    XpHistory[]
+  ownedItems   OwnedItem[]
+  completions  QuestCompletion[]
+}
+
+model Character {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  displayName  String
+  level        Int      @default(1)
+  currentXP    Int      @default(0)
+  totalXP      Int      @default(0)
+  gold         Int      @default(0)
+
+  intellect    Int      @default(1)
+  strength     Int      @default(1)
+  discipline   Int      @default(1)
+  creativity   Int      @default(1)
+  social       Int      @default(1)
+
+  currentStreak  Int      @default(0)
+  longestStreak  Int      @default(0)
+  lastActiveDate DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Quest {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title        String
+  description  String   @default("")
+  category     String
+  difficulty   String
+  xpReward     Int
+  goldReward   Int
+  attribute    String
+
+  isCompleted  Boolean  @default(false)
+  isRecurring  Boolean  @default(false)
+  completedAt  DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  completions  QuestCompletion[]
+  xpHistory    XpHistory[]
+}
+
+model QuestCompletion {
+  id              String   @id @default(uuid())
+  questId         String
+  quest           Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  xpEarned        Int
+  goldEarned      Int
+  attributeGained String
+  attributePoints Int
+  completedAt     DateTime @default(now())
+}
+
+model XpHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questId      String?
+  quest        Quest?   @relation(fields: [questId], references: [id], onDelete: SetNull)
+
+  type         String
+  description  String
+  xpChange     Int      @default(0)
+  goldChange   Int      @default(0)
+  levelBefore  Int?
+  levelAfter   Int?
+  newLevel     Int?
+  streakBefore Int?
+  streakAfter  Int?
+  attributeType    String?
+  attributeChange  Int?
+  metadata     String?
+
+  createdAt    DateTime @default(now())
+
+  @@map("XPHistory")
+}
+
+model ShopItem {
+  id           String   @id @default(uuid())
+  name         String
+  description  String
+  type         String
+  price        Int
+  rarity       String   @default("COMMON")
+  metadata     String   @default("{}")
+  isAvailable  Boolean  @default(true)
+
+  ownedBy      OwnedItem[]
+}
+
+model OwnedItem {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItemId   String
+  shopItem     ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  quantity     Int      @default(1)
+  purchasedAt  DateTime @default(now())
+  isEquipped   Boolean  @default(false)
+
+  @@unique([userId, shopItemId])
+}

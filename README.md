@@ -142,24 +142,75 @@ All routes except `signup`/`login`/`logout`/`health` require the session
 cookie. Routed data (quests, character, activity, inventory) is always scoped
 to the authenticated user; RPG reward values are always derived server-side.
 
-## Deployment Notes
+## Live URLs
 
-Production is not deployed yet. The recommended configuration:
+Pending deployment (no cloud credentials available in the build environment).
 
-- **Frontend** → Vercel. Add a rewrite so `/api/*` targets the backend, or set
-  `VITE_API_URL` when building. A Vercel rewrite keeps the session cookie
-  same-site (simplest); a direct `VITE_API_URL` cross-origin setup requires
-  the backend cookie to use `Secure` + `SameSite=None` (already enabled when
-  `NODE_ENV=production`) and `FRONTEND_URL` set to the deployed origin.
-- **Backend** → Render or Railway. Set `JWT_SECRET`, `FRONTEND_URL`,
-  `NODE_ENV=production`, and run `npx prisma migrate deploy && npm run seed`
-  as the start/init step (or a build step for Prisma clients).
-- **Database** → managed PostgreSQL for production. The schema is
-  provider-agnostic; to migrate from the local SQLite `dev.db`:
-  1. Switch the datasource in `backend/prisma/schema.prisma` to `postgresql`
-     and set `DATABASE_URL`.
-  2. Run `npx prisma migrate dev` to create the production migration.
-  3. Re-run the seed. No application code changes are required.
+| Service  | URL |
+| -------- | --- |
+| Frontend | `https://<project>.vercel.app` (to be filled after deploy) |
+| Backend  | `https://liflevel-api.onrender.com` (to be filled after deploy) |
+| Health   | `https://liflevel-api.onrender.com/api/health` |
+
+## Production Deployment
+
+> Local development stays on SQLite. Production uses a managed **PostgreSQL**
+> database. Prisma is provider-bound, so deployment swaps the datamodel and
+> migrations before generating the client. All of this is scripted; the local
+> SQLite setup is never modified on a development machine.
+
+### 1. Database (managed PostgreSQL, e.g. Render PostgreSQL / Neon / Supabase)
+
+Commands are run from the deployment machine against the production URL.
+**Never run `prisma migrate dev` against production — use `migrate deploy`.**
+
+```bash
+cd backend
+npm run prepare:prod   # switch prisma schema + migrations to PostgreSQL
+npx prisma generate    # build the PostgreSQL client
+npx prisma migrate deploy   # apply ./prisma/migrations-pg -> prisma/migrations
+npm run seed           # seed the cosmetic catalogue
+```
+
+The initial PostgreSQL migrations are committed under
+`backend/prisma/migrations-pg/` (generated from the schema; verified offline).
+
+### 2. Backend → Render
+
+A `render.yaml` blueprint is included. Key settings:
+
+- `rootDir: backend`
+- Build: `npm ci && npm run prepare:prod && npx prisma generate`
+- Start: `npx prisma migrate deploy && npm run seed && npm run start`
+- `healthCheckPath: /api/health`
+- Env: `DATABASE_URL` (from the managed Postgres), `JWT_SECRET` (long random),
+  `FRONTEND_URL` (= the deployed Vercel origin, **no trailing slash**),
+  `NODE_ENV=production`, `PORT` (Render assigns this).
+
+The API listens on `0.0.0.0` and reads `PORT` from the environment.
+
+### 3. Frontend → Vercel
+
+- Project root: `frontend/` (the repo is a monorepo).
+- Build: `npm run build` → Output: `dist`.
+- `frontend/vercel.json` contains the SPA rewrite so deep links
+  (`/dashboard`, `/character`, …) work with React Router.
+- Set `VITE_API_URL` to the deployed backend, e.g.
+  `VITE_API_URL=https://liflevel-api.onrender.com/api` (build-time secret-free
+  variable — only `VITE_`-prefixed values are public, so never put secrets here).
+
+Cookie flow in production: the SPA (Vercel) and API (Render) are different
+origins, so the API sets `Secure` + `SameSite=None` cookies when
+`NODE_ENV=production`, and CORS echoes the exact `FRONTEND_URL` origin with
+`credentials: true`. If you prefer to avoid cross-site cookies entirely,
+replace `VITE_API_URL` with a Vercel rewrite that proxies `/api/*` to the
+backend — then cookies stay same-site.
+
+### Environment variables in production
+
+Backend (`DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`, `FRONTEND_URL`,
+`PORT`); Frontend (`VITE_API_URL`). Placeholders live in `.env.example`.
+Never commit secret values — `.env` is git-ignored.
 
 ## Demo Flow
 

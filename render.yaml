@@ -1,0 +1,35 @@
+# Render Blueprint — deploys the LIFE//LEVEL backend + managed PostgreSQL.
+# Docs: https://render.com/docs/blueprint-spec
+# Frontend is deployed separately to Vercel (see frontend/vercel.json + README).
+
+services:
+  - type: web
+    name: liflevel-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    healthCheckPath: /api/health
+    # prepare:prod swaps the SQLite schema/migrations for the PostgreSQL ones,
+    # then prisma generate produces a PostgreSQL client.
+    buildCommand: npm ci && npm run prepare:prod && npx prisma generate
+    # migrate deploy + seed run against the production Postgres BEFORE the API starts.
+    startCommand: npx prisma migrate deploy && npm run seed && npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: "https://REPLACE_WITH_VERCEL_URL" # set to the deployed Vercel origin
+      - key: DATABASE_URL
+        fromDatabase:
+          name: liflevel-db
+          property: connectionString
+
+databases:
+  - name: liflevel-db
+    plan: free
+    databaseName: liflevel
+    user: liflevel

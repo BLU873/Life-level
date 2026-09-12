@@ -45,6 +45,8 @@ app.use((req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+// Bind explicitly so the server is reachable on managed hosts (Heroku/Render
+// inject a PORT and expect the process to listen on 0.0.0.0).
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`⚔️  LIFE//LEVEL API running on port ${PORT}`);
 });
