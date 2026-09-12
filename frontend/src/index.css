@@ -1,0 +1,190 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ══════════════════════════════════════════════════════
+   LIFE//LEVEL — Design System
+   A calm, precise productivity interface with an elegant
+   RPG progression layer. Neutral first, one restrained
+   accent. Inspired by the principles behind Apple,
+   Fluent, Linear and Things — not their visuals.
+   ══════════════════════════════════════════════════════ */
+
+/* ── Runtime tokens (swap under .dark) ──────────────── */
+:root {
+  color-scheme: light;
+
+  --c-bg: #fafaf9;
+  --c-surface: #ffffff;
+  --c-surface-2: #f4f4f2;
+  --c-surface-3: #ececea;
+
+  --c-line: #e7e6e2;
+  --c-line-2: #d5d4cf;
+
+  --c-text: #1b1a18;
+  --c-text-2: #5f5e5a;
+  --c-text-3: #94928c;
+
+  --c-accent: #5856d6;
+  --c-accent-2: #4645c0;
+  --c-on-accent: #ffffff;
+
+  --c-success: #2e9e63;
+  --c-warning: #a67921;
+  --c-danger: #d5483e;
+  --c-info: #2b6cb0;
+
+  --c-intellect: #5173b0;
+  --c-strength: #bf5b4c;
+  --c-discipline: #a67921;
+  --c-creativity: #9067b8;
+  --c-social: #3e8e63;
+
+  --sh-card: 0 1px 2px rgba(23, 22, 20, 0.04), 0 1px 3px rgba(23, 22, 20, 0.05);
+  --sh-card-h: 0 2px 4px rgba(23, 22, 20, 0.05), 0 10px 24px rgba(23, 22, 20, 0.08);
+  --sh-pop: 0 6px 16px rgba(23, 22, 20, 0.08), 0 20px 48px rgba(23, 22, 20, 0.12);
+
+  accent-color: var(--c-accent);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --c-bg: #121215;
+  --c-surface: #1a1a1e;
+  --c-surface-2: #212125;
+  --c-surface-3: #28282e;
+
+  --c-line: #2a2a30;
+  --c-line-2: #3a3a42;
+
+  --c-text: #f2f2f3;
+  --c-text-2: #a3a3aa;
+  --c-text-3: #6c6c75;
+
+  --c-accent: #7a78f0;
+  --c-accent-2: #8f8df4;
+  --c-on-accent: #0d0d12;
+
+  --c-success: #42b676;
+  --c-warning: #d9a441;
+  --c-danger: #e56056;
+  --c-info: #5b8def;
+
+  --c-intellect: #7fa3e8;
+  --c-strength: #e08a7a;
+  --c-discipline: #d9a441;
+  --c-creativity: #b48fe0;
+  --c-social: #5fc48d;
+
+  --sh-card: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --sh-card-h: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.28);
+  --sh-pop: 0 8px 20px rgba(0, 0, 0, 0.4), 0 24px 56px rgba(0, 0, 0, 0.42);
+}
+
+/* ── Tailwind token mapping (inline so utilities read the live vars) ── */
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+
+  --color-line: var(--c-line);
+  --color-line-2: var(--c-line-2);
+
+  --color-text: var(--c-text);
+  --color-text-2: var(--c-text-2);
+  --color-text-3: var(--c-text-3);
+
+  --color-accent: var(--c-accent);
+  --color-accent-2: var(--c-accent-2);
+  --color-on-accent: var(--c-on-accent);
+
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+  --color-danger: var(--c-danger);
+  --color-info: var(--c-info);
+
+  --color-intellect: var(--c-intellect);
+  --color-strength: var(--c-strength);
+  --color-discipline: var(--c-discipline);
+  --color-creativity: var(--c-creativity);
+  --color-social: var(--c-social);
+
+  --shadow-card: var(--sh-card);
+  --shadow-card-h: var(--sh-card-h);
+  --shadow-popover: var(--sh-pop);
+}
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono',
+    Menlo, Consolas, monospace;
+}
+
+/* ── Base ──────────────────────────────────────────── */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--c-accent) 22%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-line-2) transparent;
+}
+
+/* ── Components ────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0.75rem;
+  box-shadow: var(--sh-card);
+}
+
+.card-hover {
+  transition: border-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  border-color: var(--c-line-2);
+  box-shadow: var(--sh-card-h);
+}
+
+/* Progress — calm, readable, smooth */
+.xp-track {
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--c-surface-2);
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--c-accent);
+  transition: width 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Numerals keep their width while animating / saturating */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
