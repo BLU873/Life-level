@@ -1,8 +1,10 @@
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { LogOut, Monitor, Moon, Sun, UserCircle } from 'lucide-react';
+import { LogOut, Monitor, Moon, Sun, UserCircle, Volume2, VolumeX } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { isSoundEnabled, setSoundEnabled } from '../utils/sound';
 
 const themeOptions = [
   { value: 'system', label: 'System', icon: Monitor },
@@ -14,10 +16,17 @@ export default function Settings() {
   const { user, logout } = useAuth();
   const { preference, setPreference } = useTheme();
   const navigate = useNavigate();
+  const [soundsOn, setSoundsOn] = useState(isSoundEnabled);
+
+  function handleSoundToggle() {
+    const next = !soundsOn;
+    setSoundsOn(next);
+    setSoundEnabled(next);
+  }
 
   async function handleLogout() {
     await logout();
-    navigate('/login');
+    navigate('/');
   }
 
   return (
@@ -65,6 +74,49 @@ export default function Settings() {
                 {label}
               </button>
             ))}
+          </div>
+        </section>
+
+        {/* Celebrations */}
+        <section className="card p-6">
+          <h2 className="text-sm font-semibold tracking-tight text-text">Celebrations</h2>
+          <p className="mt-1 text-[13px] text-text-2">
+            Play short sounds when you complete quests, level up, or unlock achievements.
+          </p>
+
+          <div className="mt-4 inline-flex rounded-lg border border-line bg-surface-2 p-0.5">
+            <button
+              type="button"
+              onClick={handleSoundToggle}
+              aria-pressed={soundsOn}
+              className={`
+                flex h-8 items-center gap-2 rounded-md px-3.5 text-[13px] font-medium
+                transition-colors duration-150
+                ${soundsOn
+                  ? 'bg-surface text-text shadow-card'
+                  : 'text-text-2 hover:text-text'
+                }
+              `}
+            >
+              <Volume2 size={15} />
+              On
+            </button>
+            <button
+              type="button"
+              onClick={handleSoundToggle}
+              aria-pressed={!soundsOn}
+              className={`
+                flex h-8 items-center gap-2 rounded-md px-3.5 text-[13px] font-medium
+                transition-colors duration-150
+                ${!soundsOn
+                  ? 'bg-surface text-text shadow-card'
+                  : 'text-text-2 hover:text-text'
+                }
+              `}
+            >
+              <VolumeX size={15} />
+              Off
+            </button>
           </div>
         </section>
 

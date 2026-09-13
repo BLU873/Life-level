@@ -241,6 +241,8 @@ router.post(
           streakChanged: result.progression.streak.streakChanged,
         },
         character: result.character,
+        newAchievements: result.newAchievements,
+        dailyProgress: result.dailyProgress,
       },
     });
   })

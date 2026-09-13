@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import api from '../services/api';
+import { playCelebrationSound } from '../utils/sound';
 
 export function useQuestCompletion({ onComplete } = {}) {
   const [completingId, setCompletingId] = useState(null);
@@ -12,6 +13,7 @@ export function useQuestCompletion({ onComplete } = {}) {
         const res = await api.post(`/quests/${quest.id}/complete`);
         const data = res.data.data;
         setResult(data);
+        playCelebrationSound(data);
         if (onComplete) onComplete(data);
         return data;
       } finally {

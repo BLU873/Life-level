@@ -1,6 +1,8 @@
 const prisma = require('../lib/prisma');
 const { calculateQuestRewards, applyQuestCompletion } = require('./rpgEngine');
 const { calculateStreak } = require('./streakService');
+const { evaluateAchievements } = require('./achievementService');
+const { getDailyProgress } = require('./dailyProgressService');
 const { ApiError } = require('../utils/apiError');
 
 /**
@@ -92,7 +94,20 @@ async function completeQuest(userId, questId) {
       },
     });
 
-    return { quest: updatedQuest, completion, progression, character: updatedCharacter, history };
+    // Phase 8: evaluate achievements against the just-created completion and
+    // read Today's Arc inside the same transaction so both stay consistent.
+    const { newlyUnlocked } = await evaluateAchievements(tx, userId);
+    const dailyProgress = await getDailyProgress(tx, userId, new Date());
+
+    return {
+      quest: updatedQuest,
+      completion,
+      progression,
+      character: updatedCharacter,
+      history,
+      newAchievements: newlyUnlocked,
+      dailyProgress,
+    };
   });
 }
 

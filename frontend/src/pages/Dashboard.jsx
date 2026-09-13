@@ -150,13 +150,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <AuthenticatedHero
-        character={character}
-        dailyProgress={dailyProgress}
-        loading={loading}
-      />
+    <div className="dash-page">
+      <div className="dash-hero-wrap">
+        <AuthenticatedHero
+          character={character}
+          dailyProgress={dailyProgress}
+          loading={loading}
+        />
+      </div>
 
+      <div className="mx-auto max-w-5xl">
       <PageHeader
         title={`Welcome back, ${user?.username}`}
         description="Here is where your day comes together."
@@ -317,6 +320,7 @@ export default function Dashboard() {
         isVisible={!!toast}
         onClose={() => setToast(null)}
       />
+      </div>
     </div>
   );
 }

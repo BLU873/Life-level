@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Crosshair, LogIn } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
+import EntryNav from '../components/landing/EntryNav';
+import EntryField from '../components/landing/EntryField';
+import EntryButton from '../components/landing/EntryButton';
+import '../styles/landing.css';
+
+const EASE = [0.16, 1, 0.3, 1];
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,6 +16,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const reduced = useReducedMotion();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -29,69 +33,68 @@ export default function Login() {
     }
   }
 
+  const rise = (delay) =>
+    reduced
+      ? { initial: false }
+      : {
+          initial: { opacity: 0, y: 20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.8, ease: EASE, delay },
+        };
+
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-        className="w-full max-w-[400px]"
-      >
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/20">
-              <Crosshair size={16} />
-            </div>
-            <span className="text-[15px] font-semibold tracking-tight text-text">
-              LIFE<span className="mx-px text-text-3">//</span>LEVEL
+    <div className="entry entry-page">
+      <section className="entry-section">
+        <motion.div {...rise(0.1)} className="entry-panel">
+          <div className="entry-panel__head">
+            <span className="entry-panel__brand">
+              <span className="ln-brand__mark" aria-hidden="true">//</span>
+              LIFE//LEVEL
             </span>
+            <h1 className="entry-heading">Welcome back</h1>
+            <p className="entry-sub">Continue your progression.</p>
           </div>
-          <h1 className="mt-6 text-xl font-semibold tracking-tight text-text">
-            Welcome back
-          </h1>
-          <p className="mt-1 text-sm text-text-2">Sign in to continue your journey.</p>
-        </div>
 
-        <form className="card space-y-4 p-6" onSubmit={handleSubmit} noValidate>
-          {error && (
-            <div className="rounded-lg border border-danger/25 bg-danger/5 px-3.5 py-2.5 text-sm text-danger">
-              {error}
-            </div>
-          )}
+          <form className="entry-form" onSubmit={handleSubmit} noValidate>
+            {error && (
+              <div className="entry-form__error" role="alert">
+                {error}
+              </div>
+            )}
 
-          <Input
-            label="Email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-          />
+            <EntryField
+              label="Email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-          />
+            <EntryField
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-          <Button type="submit" className="w-full" loading={loading}>
-            <LogIn size={17} />
-            Continue
-          </Button>
-        </form>
+            <EntryButton type="submit" fullWidth loading={loading}>
+              Sign in
+              <span aria-hidden="true">→</span>
+            </EntryButton>
+          </form>
 
-        <p className="mt-6 text-center text-sm text-text-2">
-          New here?{' '}
-          <Link to="/signup" className="font-medium text-accent transition-colors hover:text-accent-2">
-            Create your account
-          </Link>
-        </p>
-      </motion.div>
+          <p className="entry-switch">
+            Don't have an account? <Link to="/signup">Create one</Link>
+          </p>
+        </motion.div>
+
+        <EntryNav />
+      </section>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import Modal from './ui/Modal';
-import { CheckCircle2, Zap, Coins, Flame, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Zap, Coins, Flame, ArrowRight, Trophy } from 'lucide-react';
 
 const ATTRIBUTE_CHIP = {
   INTELLECT: 'border-intellect/20 bg-intellect/10 text-intellect',
@@ -36,7 +36,7 @@ function AttributeChip({ className, label }) {
 export default function CompletionModal({ result, onClose }) {
   if (!result) return null;
 
-  const { completion, progression, streak } = result;
+  const { completion, progression, streak, newAchievements } = result;
   const leveledUp = !!progression?.leveledUp;
   const attrChipClass = ATTRIBUTE_CHIP[completion?.attributeGained] || 'border-line bg-surface-2 text-text';
   const attrLabel = `${completion?.attributePoints ? `+${completion.attributePoints} ` : ''}${formatAttribute(completion?.attributeGained)}`;
@@ -64,10 +64,11 @@ export default function CompletionModal({ result, onClose }) {
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Level up</p>
               <div className="mt-1 flex items-center justify-center gap-2 text-xl font-semibold tracking-tight text-text">
-                <span className="tnum">Level {progression.levelBefore}</span>
+                <span className="tnum">Level {String(progression.levelBefore).padStart(2, '0')}</span>
                 <ArrowRight size={16} className="text-text-3" />
-                <span className="tnum text-accent">Level {progression.levelAfter}</span>
+                <span className="tnum text-accent">Level {String(progression.levelAfter).padStart(2, '0')}</span>
               </div>
+              <p className="mt-1 text-[13px] text-text-2">You kept showing up.</p>
             </motion.div>
           </div>
         ) : (
@@ -88,6 +89,24 @@ export default function CompletionModal({ result, onClose }) {
             <Flame size={14} className="text-warning" />
             {streak.current} day streak
           </p>
+        )}
+
+        {newAchievements?.length > 0 && (
+          <div className="w-full space-y-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-warning">Achievement unlocked</p>
+            {newAchievements.map((achievement) => (
+              <div
+                key={achievement.code}
+                className="flex items-center gap-2.5 rounded-lg border border-warning/20 bg-warning/5 px-3 py-2 text-left"
+              >
+                <Trophy size={15} className="shrink-0 text-warning" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-text">{achievement.name}</p>
+                  <p className="truncate text-[12px] text-text-2">{achievement.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         <motion.div

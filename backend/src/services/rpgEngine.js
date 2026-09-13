@@ -125,6 +125,34 @@ function applyQuestCompletion({ character, rewards, streak }) {
   };
 }
 
+/**
+ * Pure application of a flat XP/gold grant (focus sessions, goal claims) to a
+ * character snapshot. No quest-specific rewards or attribute changes.
+ *
+ * Returns the resulting progression snapshot. Does not touch the database.
+ */
+function applyFlatGrant({ character, xp, gold }) {
+  const levelBefore = levelFromTotalXP(character.totalXP);
+  const totalXP = character.totalXP + xp;
+  const totalGold = character.gold + gold;
+  const levelAfter = levelFromTotalXP(totalXP);
+  const progress = getXPProgress(totalXP);
+
+  return {
+    xpEarned: xp,
+    goldEarned: gold,
+    levelBefore,
+    levelAfter,
+    leveledUp: levelAfter > levelBefore,
+    levelsGained: levelAfter - levelBefore,
+    totalXP,
+    totalGold,
+    xpIntoCurrentLevel: progress.currentXP,
+    xpRequiredForNextLevel: progress.xpForNextLevel,
+    progressPercentage: Math.round(progress.progress * 1000) / 10,
+  };
+}
+
 module.exports = {
   getXPRequiredForLevel,
   calculateLevelFromXP,
@@ -133,4 +161,5 @@ module.exports = {
   checkLevelUp,
   getXPProgress,
   applyQuestCompletion,
+  applyFlatGrant,
 };

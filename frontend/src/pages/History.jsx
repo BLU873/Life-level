@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Zap, Coins, TrendingUp, Flame, AlertCircle, Clock } from 'lucide-react';
+import { Zap, Coins, TrendingUp, Flame, AlertCircle, Clock, Trophy } from 'lucide-react';
 import api from '../services/api';
 import { timeAgo } from '../utils/format';
 import PageHeader from '../components/PageHeader';
@@ -24,42 +24,49 @@ function HistoryRow({ entry }) {
     metadata = null;
   }
 
+  const isAchievementUnlock = entry.type === 'ACHIEVEMENT_UNLOCK';
+
   return (
     <div className="flex items-start gap-3 py-3.5">
       <div
         className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-          leveledUp ? 'bg-accent/10 text-accent' : 'bg-surface-2 text-text-3'
+          isAchievementUnlock
+            ? 'bg-warning/10 text-warning'
+            : leveledUp
+              ? 'bg-accent/10 text-accent'
+              : 'bg-surface-2 text-text-3'
         }`}
       >
-        {leveledUp ? <TrendingUp size={16} /> : <Zap size={16} />}
+        {isAchievementUnlock ? <Trophy size={16} /> : leveledUp ? <TrendingUp size={16} /> : <Zap size={16} />}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="truncate text-sm font-medium text-text">{entry.description}</p>
-          {metadata?.difficulty && (
+          {isAchievementUnlock && <Badge variant="gold">Achievement</Badge>}
+          {!isAchievementUnlock && metadata?.difficulty && (
             <Badge variant={DIFFICULTY_BADGE[metadata.difficulty] || 'default'}>{metadata.difficulty}</Badge>
           )}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] text-text-2">
-          {entry.xpChange > 0 && <span className="tnum">+{entry.xpChange} XP</span>}
-          {entry.goldChange > 0 && (
+          {!isAchievementUnlock && entry.xpChange > 0 && <span className="tnum">+{entry.xpChange} XP</span>}
+          {!isAchievementUnlock && entry.goldChange > 0 && (
             <span className="tnum inline-flex items-center gap-1 text-warning">
               <Coins size={13} />
               +{entry.goldChange}
             </span>
           )}
-          {entry.attributeChange > 0 && entry.attributeType && (
+          {!isAchievementUnlock && entry.attributeChange > 0 && entry.attributeType && (
             <span className="text-accent">
               +{entry.attributeChange} {entry.attributeType}
             </span>
           )}
-          {leveledUp && (
+          {!isAchievementUnlock && leveledUp && (
             <span className="tnum text-accent">
               Level {entry.levelBefore} &rarr; {entry.levelAfter}
             </span>
           )}
-          {streakChanged && (
+          {!isAchievementUnlock && streakChanged && (
             <span className="tnum inline-flex items-center gap-1 text-warning">
               <Flame size={13} />
               streak {entry.streakBefore} &rarr; {entry.streakAfter}

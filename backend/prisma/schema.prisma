@@ -20,6 +20,11 @@ model User {
   xpHistory    XpHistory[]
   ownedItems   OwnedItem[]
   completions  QuestCompletion[]
+  achievements UserAchievement[]
+  focusSessions FocusSession[]
+  routines     Routine[]
+  journeys     Journey[]
+  rewards      CustomReward[]
 }
 
 model Character {
@@ -42,6 +47,14 @@ model Character {
   currentStreak  Int      @default(0)
   longestStreak  Int      @default(0)
   lastActiveDate DateTime?
+
+  // Product depth (goals, avatar identity).
+  dailyQuestGoal   Int      @default(3)
+  weeklyQuestGoal  Int      @default(15)
+  dailyGoalClaimedAt  DateTime?
+  weeklyGoalClaimedAt DateTime?
+  avatarKey    String?
+  avatarImage  String?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -69,6 +82,7 @@ model Quest {
 
   completions  QuestCompletion[]
   xpHistory    XpHistory[]
+  focusSessions FocusSession[]
 }
 
 model QuestCompletion {
@@ -135,4 +149,82 @@ model OwnedItem {
   isEquipped   Boolean  @default(false)
 
   @@unique([userId, shopItemId])
+}
+
+model AchievementDefinition {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  description  String
+  requirements String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  unlocks      UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   AchievementDefinition @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model FocusSession {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questId        String?
+  quest          Quest?   @relation(fields: [questId], references: [id], onDelete: SetNull)
+
+  mode           String   @default("POMODORO")
+  plannedSeconds Int      @default(1500)
+  totalSeconds   Int      @default(0)
+  status         String   @default("ACTIVE")
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model Routine {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  period    String   @default("MORNING")
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  items     RoutineItem[]
+}
+
+model RoutineItem {
+  id        String   @id @default(uuid())
+  routineId String
+  routine   Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  title     String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Journey {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   @default("JOURNEY")
+  title     String
+  totalDays Int
+  startedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model CustomReward {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  cost      Int
+  createdAt DateTime @default(now())
 }

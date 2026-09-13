@@ -59,7 +59,7 @@ export default function AppLayout() {
 
   async function handleLogout() {
     await logout();
-    navigate('/login');
+    navigate('/');
   }
 
   return (

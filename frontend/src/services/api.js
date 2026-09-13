@@ -23,8 +23,11 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      // If we get a 401, redirect to login (unless already on login page)
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+      // Auto-redirect on an expired/invalid session — but never for the auth
+      // probe itself (the landing page must stay reachable while logged out;
+      // AuthLayout/AppLayout handle auth navigation reactively).
+      const isAuthProbe = String(error.config?.url || '').includes('/auth/me');
+      if (!isAuthProbe && window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
         window.location.href = '/login';
       }
     }

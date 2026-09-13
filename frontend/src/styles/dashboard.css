@@ -21,12 +21,16 @@
    HERO B — AUTHENTICATED DASHBOARD INTRO
    ───────────────────────────────────────────── */
 
-.dash-shell > .dash-hero-wrap {
+.dash-page {
+  overflow: clip;
+}
+
+.dash-hero-wrap {
   margin: -1rem -1rem 0;
 }
 
 @media (min-width: 768px) {
-  .dash-shell > .dash-hero-wrap {
+  .dash-hero-wrap {
     margin: -2rem -2rem 0;
   }
 }
@@ -271,10 +275,11 @@
 /* Floating glass card — lives over the character */
 .dash-card {
   justify-self: end;
-  align-self: center;
-  width: min(340px, 100%);
-  padding: 1.4rem 1.5rem;
-  border-radius: 20px;
+  align-self: end;
+  width: min(300px, 100%);
+  margin-bottom: clamp(8px, 2vh, 20px);
+  padding: 1.15rem 1.3rem;
+  border-radius: 18px;
   background: var(--ink-card);
   border: 1px solid var(--cream-line);
   backdrop-filter: blur(20px);

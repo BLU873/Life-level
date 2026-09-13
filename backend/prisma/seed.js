@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
+const { syncAchievementDefinitions } = require('../src/services/achievementService');
 const prisma = new PrismaClient();
 
 // Premium LIFE//LEVEL cosmetic catalogue. All items are cosmetic only.
@@ -24,11 +25,11 @@ const shopItems = [
   },
   {
     name: 'Focus',
-    description: 'A calm indigo theme tuned for deep concentration.',
+    description: 'A calm warm-terracotta theme tuned for deep concentration.',
     type: 'THEME',
     price: 500,
     rarity: 'UNCOMMON',
-    metadata: { accent: 'indigo' },
+    metadata: { accent: 'ember' },
   },
   {
     name: 'Dawn',
@@ -100,6 +101,11 @@ async function main() {
 
   console.log(`Seeded ${shopItems.length} shop items (${created} created, ${updated} updated).`);
   if (removed.count > 0) console.log(`Removed ${removed.count} legacy catalogue entries.`);
+
+  // Phase 8: sync the centralized achievement definitions.
+  await syncAchievementDefinitions(prisma);
+  console.log('Seeded achievement definitions.');
+
   console.log('Database seeded successfully!');
 }
 

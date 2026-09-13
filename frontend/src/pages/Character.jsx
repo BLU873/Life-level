@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Zap, Coins, Flame, Trophy, AlertCircle, UserCircle, Check } from 'lucide-react';
+import { Zap, Coins, Flame, Trophy, AlertCircle, UserCircle, Check, Medal, Target, CalendarCheck, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
 import Card from '../components/ui/Card';
@@ -46,6 +46,7 @@ function StatTile({ label, icon: Icon, iconClass = 'text-text-2', value }) {
 export default function Character() {
   const [character, setCharacter] = useState(null);
   const [inventory, setInventory] = useState([]);
+  const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
@@ -56,11 +57,12 @@ export default function Character() {
     let cancelled = false;
     setLoading(true);
     setPageError('');
-    Promise.all([api.get('/character'), api.get('/inventory')])
-      .then(([ch, inv]) => {
+    Promise.all([api.get('/character'), api.get('/inventory'), api.get('/achievements')])
+      .then(([ch, inv, ach]) => {
         if (cancelled) return;
         setCharacter(ch.data.data.character);
         setInventory(inv.data.data.items);
+        setAchievements(ach.data.data.achievements);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -150,6 +152,12 @@ export default function Character() {
               <div>
                 <p className="text-[13px] font-medium text-text-2">Level</p>
                 <p className="tnum text-4xl font-semibold tracking-tight text-text">{character.level}</p>
+                {character.rank && (
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
+                    <Medal size={11} />
+                    {character.rank.name}
+                  </p>
+                )}
               </div>
             </div>
             <div className="w-full flex-1">
@@ -186,6 +194,28 @@ export default function Character() {
             <Card className="p-5">
               <StatTile label="Longest streak" icon={Trophy} iconClass="text-accent" value={character.longestStreak} />
             </Card>
+            <Card className="p-5">
+              <StatTile label="Quests completed" icon={Check} iconClass="text-success" value={character.totalQuestsCompleted} />
+            </Card>
+            <Card className="p-5">
+              <StatTile label="Active days" icon={CalendarCheck} iconClass="text-info" value={character.activeDays} />
+            </Card>
+            <Card className="p-5">
+              <StatTile
+                label="Strongest attribute"
+                icon={Target}
+                iconClass="text-accent"
+                value={character.strongestAttribute ? character.strongestAttribute.toLowerCase() : '—'}
+              />
+            </Card>
+            <Card className="p-5">
+              <StatTile
+                label="Fastest this week"
+                icon={TrendingUp}
+                iconClass="text-success"
+                value={character.fastestGrowingAttribute ? character.fastestGrowingAttribute.toLowerCase() : '—'}
+              />
+            </Card>
           </div>
 
           <Card className="flex flex-col gap-1">
@@ -197,6 +227,34 @@ export default function Character() {
                   {label}
                 </span>
                 <span className="tnum text-lg font-semibold tracking-tight text-text">{character[key]}</span>
+              </div>
+            ))}
+          </Card>
+
+          <Card className="flex flex-col gap-1">
+            <div className="mb-1 flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold tracking-tight text-text">Achievements</h2>
+              <span className="tnum text-xs text-text-3">
+                {achievements.filter((a) => a.unlockedAt).length}/{achievements.length}
+              </span>
+            </div>
+            {achievements.length === 0 && (
+              <p className="py-3 text-sm text-text-2">No achievements yet. Complete quests to earn them.</p>
+            )}
+            {achievements.map((a) => (
+              <div key={a.code} className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                    a.unlockedAt ? 'bg-warning/10 text-warning' : 'bg-surface-2 text-text-3'
+                  }`}
+                >
+                  <Trophy size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-text">{a.name}</p>
+                  <p className="truncate text-[13px] text-text-2">{a.description}</p>
+                </div>
+                {a.unlockedAt ? <Badge variant="gold">Unlocked</Badge> : <span className="text-xs text-text-3">Locked</span>}
               </div>
             ))}
           </Card>
