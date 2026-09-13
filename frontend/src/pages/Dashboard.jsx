@@ -22,6 +22,7 @@ import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import Toast from '../components/ui/Toast';
 import CompletionModal from '../components/CompletionModal';
+import AuthenticatedHero from '../components/dashboard/AuthenticatedHero';
 
 const ATTRIBUTES = [
   { key: 'intellect', label: 'Intellect', dot: 'bg-intellect' },
@@ -95,6 +96,7 @@ function ActivityEntry({ entry }) {
 export default function Dashboard() {
   const { user } = useAuth();
   const [character, setCharacter] = useState(null);
+  const [dailyProgress, setDailyProgress] = useState(null);
   const [quests, setQuests] = useState([]);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,7 @@ export default function Dashboard() {
       .then(([ch, qs, act]) => {
         if (cancelled) return;
         setCharacter(ch.data.data.character);
+        setDailyProgress(ch.data.data.dailyProgress);
         setQuests(qs.data.data.quests);
         setActivity(act.data.data.items);
       })
@@ -148,6 +151,12 @@ export default function Dashboard() {
 
   return (
     <div className="mx-auto max-w-5xl">
+      <AuthenticatedHero
+        character={character}
+        dailyProgress={dailyProgress}
+        loading={loading}
+      />
+
       <PageHeader
         title={`Welcome back, ${user?.username}`}
         description="Here is where your day comes together."
