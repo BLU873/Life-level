@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import ProgressPreview from './ProgressPreview';
 import '../../styles/dashboard.css';
 
 const EASE = [0.16, 1, 0.3, 1];
@@ -138,14 +137,6 @@ export default function AuthenticatedHero({ character, dailyProgress, loading })
             >
               Every action you complete becomes measurable progress.
             </motion.p>
-
-            <motion.div
-              initial={reduced ? false : { opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: EASE, delay: 0.5 }}
-            >
-              <ProgressPreview character={character} />
-            </motion.div>
           </div>
 
           <motion.div
