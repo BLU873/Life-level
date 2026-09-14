@@ -26,11 +26,11 @@ export function getAttributeIcon(attribute) {
 
 export function getAttributeColor(attribute) {
   const colors = {
-    INTELLECT: '#5173b0',
-    STRENGTH: '#bf5b4c',
+    INTELLECT: '#99652e',
+    STRENGTH: '#b0462c',
     DISCIPLINE: '#a67921',
-    CREATIVITY: '#9067b8',
-    SOCIAL: '#3e8e63',
+    CREATIVITY: '#a97a5b',
+    SOCIAL: '#6f9057',
   };
-  return colors[attribute] || '#5856d6';
+  return colors[attribute] || '#c45a18';
 }

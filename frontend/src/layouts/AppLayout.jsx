@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, Navigate, NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -7,19 +8,51 @@ import {
   LayoutDashboard,
   Scroll,
   UserCircle,
+  Swords,
+  Trophy,
+  CalendarDays,
+  RadioTower,
   ShoppingBag,
   Clock,
   Settings,
   Crosshair,
+  Castle,
   LogOut,
   Sun,
   Moon,
 } from 'lucide-react';
 
+const NAV_ACTIVE = {
+  '/dashboard': 'bg-accent-command/10 text-accent-command',
+  '/outpost': 'bg-accent-outpost/10 text-accent-outpost',
+  '/quests': 'bg-accent-operations/10 text-accent-operations',
+  '/character': 'bg-accent-character/10 text-accent-character',
+  '/loadout': 'bg-accent-loadout/10 text-accent-loadout',
+  '/achievements': 'bg-accent-achievements/10 text-accent-achievements',
+  '/campaign': 'bg-accent-campaign/10 text-accent-campaign',
+  '/intel': 'bg-accent-intel/10 text-accent-intel',
+};
+
+const NAV_ACTIVE_MOBILE = {
+  '/dashboard': 'text-accent-command',
+  '/outpost': 'text-accent-outpost',
+  '/quests': 'text-accent-operations',
+  '/character': 'text-accent-character',
+  '/loadout': 'text-accent-loadout',
+  '/achievements': 'text-accent-achievements',
+  '/campaign': 'text-accent-campaign',
+  '/intel': 'text-accent-intel',
+};
+
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/quests', icon: Scroll, label: 'Quests' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Command' },
+  { to: '/outpost', icon: Castle, label: 'Outpost' },
+  { to: '/quests', icon: Scroll, label: 'Operations' },
   { to: '/character', icon: UserCircle, label: 'Character' },
+  { to: '/loadout', icon: Swords, label: 'Loadout' },
+  { to: '/achievements', icon: Trophy, label: 'Achievements' },
+  { to: '/campaign', icon: CalendarDays, label: 'Campaign' },
+  { to: '/intel', icon: RadioTower, label: 'Intel' },
   { to: '/shop', icon: ShoppingBag, label: 'Shop' },
   { to: '/history', icon: Clock, label: 'History' },
   { to: '/settings', icon: Settings, label: 'Settings' },
@@ -32,7 +65,7 @@ function BrandMark({ compact = false }) {
         <Crosshair size={15} />
       </div>
       {!compact && (
-        <span className="text-[15px] font-semibold tracking-tight text-text">
+        <span className="font-display text-[15px] tracking-tight text-text">
           LIFE<span className="mx-px text-text-3">//</span>LEVEL
         </span>
       )}
@@ -67,7 +100,13 @@ export default function AppLayout() {
       {/* Sidebar — hidden on mobile */}
       <aside className="hidden w-[248px] shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="flex h-14 items-center px-5">
-          <BrandMark />
+          <Link
+            to="/outpost"
+            aria-label="Outpost // Base — your operational headquarters"
+            className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-tact"
+          >
+            <BrandMark />
+          </Link>
         </div>
 
         <nav className="flex-1 space-y-0.5 px-3 pt-2">
@@ -76,10 +115,10 @@ export default function AppLayout() {
               key={to}
               to={to}
               className={({ isActive }) => `
-                flex items-center gap-3 rounded-lg px-3 h-9 text-[13.5px] font-medium
+                flex items-center gap-3 rounded-lg px-3 h-9 text-[13.5px] font-ui font-medium
                 transition-colors duration-150
                 ${isActive
-                  ? 'bg-accent/10 text-accent'
+                  ? NAV_ACTIVE[to] || 'bg-surface-2 text-text'
                   : 'text-text-2 hover:bg-surface-2 hover:text-text'
                 }
               `}
@@ -126,7 +165,13 @@ export default function AppLayout() {
       <main className="min-w-0 flex-1">
         {/* Mobile top bar */}
         <header className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
-          <BrandMark compact />
+          <Link
+            to="/outpost"
+            aria-label="Outpost // Base — your operational headquarters"
+            className="flex items-center rounded-md transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-tact"
+          >
+            <BrandMark compact />
+          </Link>
           <div className="flex items-center gap-1.5">
             <button
               onClick={toggleTheme}
@@ -151,27 +196,31 @@ export default function AppLayout() {
           transition={{ duration: 0.2 }}
           className="p-4 pb-24 md:p-8 md:pb-8"
         >
-          <Outlet />
+          <Suspense fallback={<Skeleton className="h-[60vh] w-full" />}>
+            <Outlet />
+          </Suspense>
         </motion.div>
       </main>
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-xl md:hidden">
-        <div className="grid grid-cols-5">
-          {navItems.slice(0, 5).map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `
-                flex flex-col items-center gap-1 py-2 text-[11px] font-medium
-                transition-colors duration-150
-                ${isActive ? 'text-accent' : 'text-text-3 hover:text-text-2'}
-              `}
-            >
-              <Icon size={20} />
-              {label}
-            </NavLink>
-          ))}
+        <div className="grid grid-cols-7">
+          {navItems
+            .filter((i) => i.to !== '/settings' && i.to !== '/history' && i.to !== '/shop' && i.to !== '/outpost')
+            .map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) => `
+                  flex min-w-0 flex-col items-center gap-1 px-0.5 py-2 text-[9px] font-ui font-medium
+                  transition-colors duration-150
+                  ${isActive ? NAV_ACTIVE_MOBILE[to] || 'text-accent' : 'text-text-3 hover:text-text-2'}
+                `}
+              >
+                <Icon size={18} />
+                <span className="max-w-full truncate">{label}</span>
+              </NavLink>
+            ))}
         </div>
       </nav>
     </div>

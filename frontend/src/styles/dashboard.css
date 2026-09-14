@@ -14,7 +14,6 @@
   --cream-line: rgba(251, 219, 175, 0.16);
   --ink-card: rgba(10, 8, 7, 0.58);
   --ink-deep: rgba(10, 8, 7, 0.82);
-  --font-display: 'Orbitron-Medium', 'Inter Tight', 'Inter', 'Arial Narrow', sans-serif;
 }
 
 /* ─────────────────────────────────────────────
@@ -332,7 +331,7 @@
 }
 
 .dash-card__status.is-complete {
-  color: #6fcf97;
+  color: #6e9b62;
 }
 
 .dash-card__rewards {
@@ -550,7 +549,7 @@
       max(22px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   }
   .dash-hero__video {
-    object-position: 42% center;
+    object-position: 68% center;
   }
   .dash-hero__headline {
     font-size: clamp(1.5rem, 9vw, 2.4rem);

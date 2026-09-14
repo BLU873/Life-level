@@ -7,7 +7,7 @@ import '../../styles/dashboard.css';
 const EASE = [0.16, 1, 0.3, 1];
 
 // Ninja-turtle-style character hero comes from the VANGUARD video asset.
-const HERO_VIDEO =
+export const HERO_VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260606_154941_df1a96e1-a06f-450c-bd02-d863414cc1a0.mp4';
 
 function capitalize(value) {
@@ -46,7 +46,7 @@ function ArcCard({ dailyProgress }) {
         </div>
         <p className="dash-card__status">Nothing planned</p>
         <div className="dash-card__empty">
-          <Link to="/quests">Plan your first quest →</Link>
+          <Link to="/quests">Plan your first operation →</Link>
         </div>
       </aside>
     );
@@ -154,7 +154,7 @@ export default function AuthenticatedHero({ character, dailyProgress, loading })
           transition={{ duration: 0.8, ease: EASE, delay: 0.72 }}
           className="dash-hero__meta"
         >
-          <MetaItem value={meta.quests} label="Quests" />
+          <MetaItem value={meta.quests} label="Operations" />
           <MetaItem value={meta.attribute} label="Attributes" />
           <MetaItem value={meta.xp} label="XP" />
           <MetaItem value={meta.streak} label="Streak" />

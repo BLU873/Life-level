@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Zap, Coins, TrendingUp, Flame, AlertCircle, Clock, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Zap, Coins, TrendingUp, Flame, AlertCircle, Clock, Trophy, Crosshair } from 'lucide-react';
 import api from '../services/api';
 import { timeAgo } from '../utils/format';
 import PageHeader from '../components/PageHeader';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
-import Button from '../components/ui/Button';
+import { TacticalPanel, TacticalButton } from '../components/tactical';
 
 const DIFFICULTY_BADGE = {
   EASY: 'default',
@@ -110,8 +110,9 @@ export default function History() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        kicker="Activity // Record"
         title="Activity"
-        description="Every quest you have completed, newest first."
+        description="Every operation you have completed, newest first."
       />
 
       {loading && (
@@ -123,35 +124,41 @@ export default function History() {
       )}
 
       {!loading && pageError && (
-        <Card className="flex flex-col items-center gap-3 py-12 text-center">
+        <TacticalPanel variant="danger" className="flex flex-col items-center gap-3 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10 text-danger">
             <AlertCircle size={22} />
           </div>
           <p className="font-medium text-text">{pageError}</p>
-          <Button variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
+          <TacticalButton variant="steel" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
             Try again
-          </Button>
-        </Card>
+          </TacticalButton>
+        </TacticalPanel>
       )}
 
       {!loading && !pageError && items.length === 0 && (
-        <Card className="flex flex-col items-center gap-3 py-12 text-center">
+        <TacticalPanel className="flex flex-col items-center gap-3 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-2 text-text-3">
             <Clock size={22} />
           </div>
           <p className="font-medium text-text">No activity yet</p>
           <p className="max-w-xs text-sm text-text-2">
-            Complete a quest and your earned XP, gold and attribute gains will show up here.
+            Complete an operation and your earned XP, gold and attribute gains will show up here.
           </p>
-        </Card>
+          <Link to="/quests">
+            <TacticalButton variant="ghost" size="sm">
+              <Crosshair size={13} />
+              Open War Room
+            </TacticalButton>
+          </Link>
+        </TacticalPanel>
       )}
 
       {!loading && !pageError && items.length > 0 && (
-        <Card className="flex flex-col divide-y divide-line p-2">
+        <TacticalPanel brackets className="flex flex-col divide-y divide-line">
           {items.map((entry) => (
             <HistoryRow key={entry.id} entry={entry} />
           ))}
-        </Card>
+        </TacticalPanel>
       )}
     </div>
   );

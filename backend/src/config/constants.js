@@ -97,6 +97,11 @@ const FOCUS_COMPLETE_REWARD = { xp: 10, gold: 2 };
 const FOCUS_MIN_SECONDS = 60;
 const FOCUS_MAX_SECONDS = 6 * 3600;
 
+// Routine item completion reward. Deliberately small ("consistency over
+// magnitude"): a per-day idempotent tick that rewards showing up, not grinding.
+// Each completed item grants this once per day through the normal ledger.
+const ROUTINE_COMPLETE_REWARD = { xp: 5, gold: 1 };
+
 // Character identity presets. keys are stable identifiers; RONIN points at the
 // project's own hero art where one exists, the rest render as emblem cards.
 const AVATAR_PRESETS = [
@@ -215,6 +220,7 @@ module.exports = {
   FOCUS_COMPLETE_REWARD,
   FOCUS_MIN_SECONDS,
   FOCUS_MAX_SECONDS,
+  ROUTINE_COMPLETE_REWARD,
   AVATAR_PRESETS,
   AVATAR_UPLOAD_LIMIT,
   AVATAR_IMAGE_MAX_LENGTH,

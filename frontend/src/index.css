@@ -33,13 +33,18 @@
   --c-success: #3d8f5f;
   --c-warning: #a67921;
   --c-danger: #c25743;
-  --c-info: #8a6a35;
+  --c-info: #5a6a74;
 
   --c-intellect: #99652e;
   --c-strength: #b0462c;
   --c-discipline: #a67921;
   --c-creativity: #a97a5b;
   --c-social: #6f9057;
+
+  --c-tact: #cf4523;
+  --c-tact-2: #b63a18;
+  --c-cream: #f7dcaa;
+  --c-steel: #6b655c;
 
   --sh-card: 0 1px 2px rgba(90, 60, 30, 0.05), 0 1px 3px rgba(90, 60, 30, 0.06);
   --sh-card-h: 0 2px 4px rgba(90, 60, 30, 0.06), 0 10px 24px rgba(90, 60, 30, 0.09);
@@ -75,13 +80,18 @@
   --c-success: #5ea97c;
   --c-warning: #d9a441;
   --c-danger: #e0604a;
-  --c-info: #c9a066;
+  --c-info: #6d7f8a;
 
   --c-intellect: #c08a3e;
   --c-strength: #d9765a;
   --c-discipline: #d9a441;
   --c-creativity: #c09373;
   --c-social: #84a76c;
+
+  --c-tact: #e0632f;
+  --c-tact-2: #e07020;
+  --c-cream: #fbdbaf;
+  --c-steel: #a49c90;
 
   --sh-card: 0 1px 2px rgba(0, 0, 0, 0.3);
   --sh-card-h: 0 2px 4px rgba(0, 0, 0, 0.34), 0 12px 28px rgba(0, 0, 0, 0.32);
@@ -122,6 +132,20 @@
   --color-creativity: var(--c-creativity);
   --color-social: var(--c-social);
 
+  --color-tact: var(--c-tact);
+  --color-tact-2: var(--c-tact-2);
+  --color-cream: var(--c-cream);
+  --color-steel: var(--c-steel);
+
+  --color-accent-command: var(--c-accent);
+  --color-accent-outpost: var(--c-warning);
+  --color-accent-operations: var(--c-tact);
+  --color-accent-character: var(--c-accent);
+  --color-accent-loadout: var(--c-warning);
+  --color-accent-achievements: var(--c-warning);
+  --color-accent-campaign: var(--c-warning);
+  --color-accent-intel: var(--c-info);
+
   --shadow-card: var(--sh-card);
   --shadow-card-h: var(--sh-card-h);
   --shadow-popover: var(--sh-pop);
@@ -130,8 +154,12 @@
 @theme {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  --font-display: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, sans-serif;
+  --font-ui: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-display: 'Orbitron-Medium', 'Inter Tight', 'Inter', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-special: 'Orbitron-Medium', 'Rajdhani', 'Inter', sans-serif;
+  --font-atmospheric: 'Shippori Mincho', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono',
     Menlo, Consolas, monospace;
 }
@@ -197,4 +225,81 @@ body {
 /* Numerals keep their width while animating / saturating */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Tactical system ───────────────────────────────────
+   HUD language: clipped corners, corner brackets, mono
+   caps labels, segmented fills. Uses the existing token
+   set (accent = burnt orange, tact = tactical red-orange,
+   steel = metallic grey, cream = warm highlight). */
+
+/* Clipped corner on any element */
+.tact-clip {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+
+/* HUD corner brackets (top-left + bottom-right) */
+.tact-brackets {
+  position: relative;
+}
+
+.tact-brackets::before,
+.tact-brackets::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: var(--c-tact);
+  border-style: solid;
+  border-width: 0;
+}
+
+.tact-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.tact-brackets::after {
+  right: -1px;
+  bottom: -1px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+
+/* Subtle scanline overlay */
+.tact-scan {
+  position: relative;
+  overflow: hidden;
+}
+
+.tact-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.14) 2px,
+    rgba(0, 0, 0, 0.14) 3px
+  );
+  opacity: 0.35;
+}
+
+/* Thin tactical divider */
+.tact-rule {
+  height: 1px;
+  background: linear-gradient(to right, var(--c-tact), transparent);
+  opacity: 0.55;
 }

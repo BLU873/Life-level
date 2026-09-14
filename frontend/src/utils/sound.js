@@ -5,6 +5,7 @@ export const SOUNDS = {
   'focus-complete': '/sounds/focus-complete.wav',
   achievement: '/sounds/achievement.wav',
   'level-up': '/sounds/level-up.wav',
+  'operation-created': '/sounds/mixkit-sci-fi-click-900.wav',
 };
 
 const audioCache = new Map();

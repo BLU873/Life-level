@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
-const { ROUTINE_PERIODS } = require('../config/constants');
+const { ROUTINE_PERIODS, ROUTINE_COMPLETE_REWARD } = require('../config/constants');
 const { ApiError } = require('../utils/apiError');
+const { applyFlatGrant } = require('./rpgEngine');
 const { startOfDay, endOfDay } = require('../utils/date');
 
 /**
@@ -118,7 +119,13 @@ async function reorderItems(userId, routineId, itemIds) {
   return prisma.routineItem.findMany({ where: { routineId }, orderBy: { position: 'asc' } });
 }
 
-/** Mark an item done for today. Idempotent per day; writes a history ledger row. */
+/**
+ * Mark an item done for today. Idempotent per day; writes a history ledger row.
+ *
+ * The first completion of an item in a day grants the small routine reward
+ * via the same flat-grant engine used by focus/goals, atomically with the
+ * ledger row. A repeated tick for the same day pays nothing extra.
+ */
 async function completeItem(userId, routineId, itemId) {
   const routine = await prisma.routine.findFirst({ where: { id: routineId, userId } });
   if (!routine) throw ApiError.notFound('ROUTINE_NOT_FOUND', 'Routine not found.');
@@ -126,27 +133,72 @@ async function completeItem(userId, routineId, itemId) {
   if (!item) throw ApiError.notFound('ITEM_NOT_FOUND', 'Routine item not found.');
 
   const now = new Date();
-  const existing = await prisma.xpHistory.findFirst({
-    where: {
-      userId,
-      type: 'ROUTINE_COMPLETE',
-      metadata: JSON.stringify({ routineId, itemId }),
-      createdAt: { gte: startOfDay(now), lt: endOfDay(now) },
-    },
-  });
-  if (existing) {
-    return { item, alreadyCompleted: true, today: true };
-  }
+  const dayStart = startOfDay(now);
+  const dayEnd = endOfDay(now);
 
-  const history = await prisma.xpHistory.create({
-    data: {
-      userId,
-      type: 'ROUTINE_COMPLETE',
-      description: `Completed routine item "${item.title}"`,
-      metadata: JSON.stringify({ routineId, itemId }),
-    },
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.xpHistory.findFirst({
+      where: {
+        userId,
+        type: 'ROUTINE_COMPLETE',
+        metadata: JSON.stringify({ routineId, itemId }),
+        createdAt: { gte: dayStart, lt: dayEnd },
+      },
+    });
+    if (existing) {
+      return { item, alreadyCompleted: true, today: true };
+    }
+
+    const character = await tx.character.findUnique({ where: { userId } });
+    if (!character) throw ApiError.notFound('CHARACTER_NOT_FOUND', 'Character not found.');
+
+    const progression = applyFlatGrant({
+      character,
+      xp: ROUTINE_COMPLETE_REWARD.xp,
+      gold: ROUTINE_COMPLETE_REWARD.gold,
+    });
+
+    await tx.character.update({
+      where: { userId },
+      data: {
+        totalXP: progression.totalXP,
+        level: progression.levelAfter,
+        currentXP: progression.xpIntoCurrentLevel,
+        gold: progression.totalGold,
+      },
+    });
+
+    const history = await tx.xpHistory.create({
+      data: {
+        userId,
+        type: 'ROUTINE_COMPLETE',
+        description: `Completed routine item "${item.title}"`,
+        xpChange: ROUTINE_COMPLETE_REWARD.xp,
+        goldChange: ROUTINE_COMPLETE_REWARD.gold,
+        levelBefore: progression.levelBefore,
+        levelAfter: progression.levelAfter,
+        newLevel: progression.levelAfter,
+        metadata: JSON.stringify({ routineId, itemId }),
+      },
+    });
+
+    return {
+      item,
+      alreadyCompleted: false,
+      rewards: ROUTINE_COMPLETE_REWARD,
+      progression: {
+        levelBefore: progression.levelBefore,
+        levelAfter: progression.levelAfter,
+        leveledUp: progression.leveledUp,
+        totalXP: progression.totalXP,
+        xpIntoCurrentLevel: progression.xpIntoCurrentLevel,
+        xpRequiredForNextLevel: progression.xpRequiredForNextLevel,
+        progressPercentage: progression.progressPercentage,
+      },
+      character: { gold: progression.totalGold, level: progression.levelAfter },
+      history,
+    };
   });
-  return { item, alreadyCompleted: false, history };
 }
 
 async function deleteRoutine(userId, routineId) {

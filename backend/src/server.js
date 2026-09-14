@@ -19,6 +19,7 @@ const routineRoutes = require('./routes/routines');
 const journeyRoutes = require('./routes/journeys');
 const rewardRoutes = require('./routes/rewards');
 const calendarRoutes = require('./routes/calendar');
+const intelRoutes = require('./routes/intel');
 const { syncAchievementDefinitions } = require('./services/achievementService');
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/routines', routineRoutes);
 app.use('/api/journeys', journeyRoutes);
 app.use('/api/rewards', rewardRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/intel', intelRoutes);
 
 // 404 for unknown API routes
 app.use((req, res) => {
