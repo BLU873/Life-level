@@ -8,7 +8,7 @@ import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import Skeleton from '../components/ui/Skeleton';
 import Toast from '../components/ui/Toast';
-import { TacticalPanel, TacticalButton } from '../components/tactical';
+import { TacticalPanel, TacticalButton, tacticalButtonClasses } from '../components/tactical';
 
 const RARITY_BADGE = {
   COMMON: 'default',
@@ -145,13 +145,11 @@ export default function Shop() {
                 Arsenal Clear
               </p>
               <p className="max-w-xs text-sm text-text-3">
-                No stock on the shelf right now. Run operations to fund your arsenal and check back.
+                Nothing available right now. Check back after completing more operations.
               </p>
-              <Link to="/quests">
-                <TacticalButton variant="ghost" size="sm">
-                  <Crosshair size={13} />
-                  Open War Room
-                </TacticalButton>
+              <Link to="/quests" className={tacticalButtonClasses('ghost', 'sm')}>
+                <Crosshair size={13} />
+                Open War Room
               </Link>
             </TacticalPanel>
           ) : (
@@ -188,6 +186,7 @@ export default function Shop() {
                         size="sm"
                         onClick={() => setConfirmItem(item)}
                         disabled={gold < item.price}
+                        title={gold < item.price ? `Needs ${(item.price - gold).toLocaleString()} more gold` : undefined}
                       >
                         <ShoppingCart size={13} />
                         {gold < item.price ? 'Too expensive' : 'Purchase'}
@@ -205,11 +204,12 @@ export default function Shop() {
         isOpen={!!confirmItem}
         onClose={() => !confirmBusy && setConfirmItem(null)}
         title="Confirm purchase"
-        description={confirmItem?.name}
+        description="Review the totals, operator."
         size="sm"
       >
         {confirmItem && (
           <div className="space-y-4">
+            <p className="break-words text-base font-medium text-text">{confirmItem.name}</p>
             <div className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-4 py-3 text-sm">
               <span className="text-text-2">Your gold</span>
               <span className="tnum font-semibold text-text">{gold.toLocaleString()}</span>
@@ -231,9 +231,9 @@ export default function Shop() {
                 Cancel
               </TacticalButton>
               <TacticalButton variant="primary" size="sm" onClick={handleConfirmPurchase} disabled={confirmBusy}>
-                {confirmBusy && <Loader2 size={14} className="animate-spin" />}
+                {confirmBusy && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
                 <ShoppingCart size={14} />
-                Purchase
+                {confirmBusy ? 'Purchasing…' : 'Purchase'}
               </TacticalButton>
             </div>
           </div>

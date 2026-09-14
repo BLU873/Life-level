@@ -307,7 +307,7 @@ export default function Intel() {
                   {failedCategories.join(' · ')}
                 </span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-3">
-                  Remaining intel remains live
+                  Other channels remain live
                 </span>
               </div>
             </TacticalPanel>

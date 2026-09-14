@@ -94,6 +94,7 @@ export default function CampaignCalendar({
         </p>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={onPrevMonth}
             disabled={!canGoPrev}
             aria-label="Previous month"
@@ -102,6 +103,7 @@ export default function CampaignCalendar({
             <ChevronLeft size={15} />
           </button>
           <button
+            type="button"
             onClick={onNextMonth}
             disabled={!canGoNext}
             aria-label="Next month"

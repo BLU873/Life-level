@@ -14,22 +14,31 @@ const SIZES = {
   lg: 'h-12 px-6 text-sm',
 };
 
-export default function TacticalButton({ children, variant = 'primary', size = 'md', disabled, className = '', ...props }) {
+/**
+ * Shared class string so links can look like tactical buttons without
+ * nesting a <button> inside an <a> (invalid HTML, double tab stop).
+ */
+export function tacticalButtonClasses(variant = 'primary', size = 'md', className = '') {
+  return `
+    tact-clip inline-flex items-center justify-center gap-2
+    font-ui font-semibold uppercase tracking-[0.16em]
+    transition-colors duration-150
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tact/40
+    disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0
+    ${VARIANTS[variant] || VARIANTS.primary}
+    ${SIZES[size] || SIZES.md}
+    ${className}
+  `;
+}
+
+export default function TacticalButton({ children, variant = 'primary', size = 'md', type = 'button', disabled, className = '', ...props }) {
   return (
     <motion.button
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
       disabled={disabled}
-      className={`
-        tact-clip inline-flex items-center justify-center gap-2
-        font-ui font-semibold uppercase tracking-[0.16em]
-        transition-colors duration-150
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tact/40
-        disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0
-        ${VARIANTS[variant] || VARIANTS.primary}
-        ${SIZES[size] || SIZES.md}
-        ${className}
-      `}
+      type={type}
+      className={tacticalButtonClasses(variant, size, className)}
       {...props}
     >
       {children}

@@ -1,10 +1,10 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { Pencil, Trash2, Zap, Coins, CheckCircle2, Repeat2, Crosshair, Loader2, Shield } from 'lucide-react';
+import { Pencil, Trash2, Zap, Coins, CheckCircle2, Repeat2, Crosshair, Loader2, Shield, Timer } from 'lucide-react';
 import { timeAgo } from '../../utils/format';
 import { TacticalButton, HUDLabel, StatusBadge } from '../tactical';
 import { CATEGORY_LABEL, DIFFICULTY_LABEL, DIFFICULTY_STATUS, DIFFICULTY_ATTRIBUTE_POINTS, ATTRIBUTE_NAME } from './constants';
 
-export default function OperationCard({ quest, busy, onEdit, onDelete, onComplete }) {
+export default function OperationCard({ quest, busy, focusBadge, onEdit, onDelete, onComplete }) {
   const reduced = useReducedMotion();
   const categoryLabel = CATEGORY_LABEL[quest.category] || quest.category;
   const difficultyLabel = DIFFICULTY_LABEL[quest.difficulty] || quest.difficulty;
@@ -65,6 +65,12 @@ export default function OperationCard({ quest, busy, onEdit, onDelete, onComplet
               New // Today
             </span>
           )}
+          {focusBadge && (
+            <span className="tnum inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-2">
+              <Timer size={11} className={focusBadge.live ? 'text-success' : 'text-warning'} />
+              {focusBadge.live ? 'Focus Active' : `Focus ${focusBadge.minutes} min`}
+            </span>
+          )}
         </div>
 
         <h3 className="min-w-0 font-ui text-[15px] font-semibold leading-snug text-text">{quest.title}</h3>
@@ -120,13 +126,13 @@ export default function OperationCard({ quest, busy, onEdit, onDelete, onComplet
           >
             {busy ? (
               <>
-                <Loader2 size={13} className="animate-spin" />
-                Deploying
+                <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                Completing…
               </>
             ) : (
               <>
                 <Crosshair size={13} />
-                Deploy
+                Complete
               </>
             )}
           </TacticalButton>

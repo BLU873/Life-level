@@ -6,7 +6,7 @@ import { timeAgo } from '../utils/format';
 import PageHeader from '../components/PageHeader';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
-import { TacticalPanel, TacticalButton } from '../components/tactical';
+import { TacticalPanel, TacticalButton, tacticalButtonClasses } from '../components/tactical';
 
 const DIFFICULTY_BADGE = {
   EASY: 'default',
@@ -144,11 +144,9 @@ export default function History() {
           <p className="max-w-xs text-sm text-text-2">
             Complete an operation and your earned XP, gold and attribute gains will show up here.
           </p>
-          <Link to="/quests">
-            <TacticalButton variant="ghost" size="sm">
-              <Crosshair size={13} />
-              Open War Room
-            </TacticalButton>
+          <Link to="/quests" className={tacticalButtonClasses('ghost', 'sm')}>
+            <Crosshair size={13} />
+            Open War Room
           </Link>
         </TacticalPanel>
       )}

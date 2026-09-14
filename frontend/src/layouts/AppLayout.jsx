@@ -131,6 +131,7 @@ export default function AppLayout() {
 
         <div className="border-t border-line p-3">
           <button
+            type="button"
             onClick={toggleTheme}
             className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium text-text-2 transition-colors hover:bg-surface-2 hover:text-text"
           >
@@ -150,6 +151,7 @@ export default function AppLayout() {
               <p className="truncate text-xs text-text-3">{user.email}</p>
             </div>
             <button
+              type="button"
               onClick={handleLogout}
               className="rounded-md p-1.5 text-text-3 transition-colors hover:bg-danger/10 hover:text-danger"
               title="Log out"
@@ -174,6 +176,7 @@ export default function AppLayout() {
           </Link>
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
               onClick={toggleTheme}
               className="rounded-lg p-2 text-text-3 transition-colors hover:bg-surface-2 hover:text-text"
               aria-label="Toggle theme"

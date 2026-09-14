@@ -78,9 +78,9 @@ export default function Settings() {
           </div>
         </TacticalPanel>
 
-        {/* Celebrations */}
+        {/* Sound */}
         <TacticalPanel>
-          <h2 className="text-sm font-semibold tracking-tight text-text">Celebrations</h2>
+          <h2 className="text-sm font-semibold tracking-tight text-text">Sound</h2>
           <p className="mt-1 text-[13px] text-text-2">
             Play short sounds when you complete operations, level up, or unlock achievements.
           </p>
@@ -115,9 +115,9 @@ export default function Settings() {
           </div>
         </TacticalPanel>
 
-        {/* Danger zone */}
+        {/* Sign out */}
         <TacticalPanel>
-          <h2 className="text-sm font-semibold tracking-tight text-text">Session</h2>
+          <h2 className="text-sm font-semibold tracking-tight text-text">Sign out</h2>
           <p className="mt-1 text-[13px] text-text-2">
             Log out of LIFE//LEVEL on this device.
           </p>

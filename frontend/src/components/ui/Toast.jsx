@@ -39,6 +39,7 @@ export default function Toast({ message, type = 'info', onClose, isVisible }) {
           </span>
           <span className="flex-1 text-sm text-text">{message}</span>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-md p-1 text-text-3 transition-colors hover:text-text"
             aria-label="Dismiss"

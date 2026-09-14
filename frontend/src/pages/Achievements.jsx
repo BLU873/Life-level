@@ -15,6 +15,7 @@ import {
   ProgressBar,
   RankBadge,
   TacticalButton,
+  tacticalButtonClasses,
 } from '../components/tactical';
 
 function formatUnlockDate(iso) {
@@ -287,11 +288,9 @@ export default function Achievements() {
                 No achievements on record. Complete operations to earn your first.
               </p>
             </div>
-            <Link to="/quests">
-              <TacticalButton variant="ghost" size="sm">
-                <Crosshair size={13} />
-                Open War Room
-              </TacticalButton>
+            <Link to="/quests" className={tacticalButtonClasses('ghost', 'sm')}>
+              <Crosshair size={13} />
+              Open War Room
             </Link>
           </div>
         ) : (

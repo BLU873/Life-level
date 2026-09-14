@@ -16,10 +16,11 @@ const sizes = {
 };
 
 const Button = forwardRef(
-  ({ children, variant = 'primary', size = 'md', className = '', disabled = false, loading = false, ...props }, ref) => {
+  ({ children, variant = 'primary', size = 'md', type = 'button', className = '', disabled = false, loading = false, ...props }, ref) => {
     return (
       <motion.button
         ref={ref}
+        type={type}
         whileHover={disabled ? {} : { scale: 1.01 }}
         whileTap={disabled ? {} : { scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}

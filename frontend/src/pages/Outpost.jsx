@@ -48,6 +48,7 @@ function OperatorMeta({ label, value, className = '' }) {
 }
 
 function CommandCenter({ character, rank, tier }) {
+  const reduced = useReducedMotion();
   const level = character.level ?? 1;
   const xpInto = character.xpIntoCurrentLevel ?? 0;
   const xpNeed = character.xpRequiredForNextLevel ?? 1;
@@ -87,7 +88,7 @@ function CommandCenter({ character, rank, tier }) {
               </span>
               <HUDLabel tone="tact">Command Center</HUDLabel>
             </div>
-            <span aria-hidden="true" className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-success" />
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-success" style={reduced ? { animation: 'none' } : undefined} />
           </div>
 
           <div className="relative flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
@@ -292,7 +293,7 @@ export default function Outpost() {
       status: 'online',
       bars: topAttrs,
       barMax: attrBarMax,
-      action: 'Enter Character',
+      action: 'Open Character',
     };
     const armory = {
       id: 'armory',

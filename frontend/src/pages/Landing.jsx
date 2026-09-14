@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import CharacterReveal, { PRODUCT_IMAGE } from '../components/landing/CharacterReveal';
+import EntryNav from '../components/landing/EntryNav';
 import '../styles/landing.css';
 
 const EASE = [0.16, 1, 0.3, 1];
 
 const SPECS = [
-  ['Quests', 'Every goal is a quest'],
-  ['Attributes', 'Strength · Mind · Focus'],
-  ['XP', 'Earn it on every win'],
-  ['Streaks', 'Consecutive days of progress'],
+  ['Quests', 'Operations with set rewards'],
+  ['Attributes', 'Five trainable stats'],
+  ['XP', 'Earned per completion'],
+  ['Streaks', 'Kept alive daily'],
 ];
 
 export default function Landing() {
@@ -26,6 +27,7 @@ export default function Landing() {
 
   return (
     <div className="entry">
+      <EntryNav />
       <section className="entry-hero">
         <CharacterReveal />
 
@@ -33,7 +35,7 @@ export default function Landing() {
           <div className="entry-hero__left">
             <div className="entry-hero__copy">
               <motion.p {...rise(0.2)} className="ln-eyebrow">
-                LIFE//LEVEL
+                Turn to-dos into XP
               </motion.p>
 
               <motion.h1 {...rise(0.28)} className="entry-hero__headline">
@@ -42,8 +44,8 @@ export default function Landing() {
               </motion.h1>
 
               <motion.p {...rise(0.44)} className="entry-hero__sub">
-                Turn everyday goals into quests. Earn XP. Build your attributes.
-                Level up through consistency.
+                Create operations. Complete them for XP and gold.
+                Hold your streak.
               </motion.p>
 
               <motion.div {...rise(0.58)} className="entry-hero__actions">
@@ -54,7 +56,7 @@ export default function Landing() {
                   </span>
                 </Link>
                 <Link to="/login" className="ln-cta-ghost">
-                  I already have an account
+                  Sign in
                 </Link>
               </motion.div>
             </div>
@@ -66,7 +68,7 @@ export default function Landing() {
                 aria-hidden="true"
               />
               <h2 className="entry-card__name">LIFE//LEVEL</h2>
-              <p className="entry-card__desc">Every completed quest levels up your character.</p>
+              <p className="entry-card__desc">Completed operations pay XP, gold, and attributes.</p>
             </motion.article>
           </div>
 
@@ -79,7 +81,7 @@ export default function Landing() {
           </motion.div>
 
           <motion.div {...rise(0.78)} className="entry-hero__specs">
-            <h3>Core loop</h3>
+            <h3>How it works</h3>
             {SPECS.map(([label, value]) => (
               <div className="spec-row" key={label}>
                 <span className="spec-label">{label}</span>

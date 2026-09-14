@@ -105,7 +105,7 @@ export default function AuthenticatedHero({ character, dailyProgress, loading })
             <span className="dash-hero__brand-mark" aria-hidden="true">//</span>
             LIFE//LEVEL
           </span>
-          <span className="dash-hero__label">Your Journey</span>
+          <span className="dash-hero__label">Command</span>
         </div>
 
         <div className="dash-hero__body">
@@ -116,7 +116,7 @@ export default function AuthenticatedHero({ character, dailyProgress, loading })
               transition={{ duration: 0.7, ease: EASE, delay: 0.15 }}
               className="dash-hero__eyebrow"
             >
-              {user?.username ? `Welcome back, ${user.username}` : loading ? 'Loading your journey' : 'Your journey'}
+              {user?.username ? `Welcome back, ${user.username}` : loading ? 'Loading command' : 'Command'}
             </motion.p>
 
             <motion.h1
@@ -126,7 +126,7 @@ export default function AuthenticatedHero({ character, dailyProgress, loading })
               className="dash-hero__headline"
             >
               Your life.
-              <span>Your progression.</span>
+              <span>Your record.</span>
             </motion.h1>
 
             <motion.p
@@ -135,7 +135,7 @@ export default function AuthenticatedHero({ character, dailyProgress, loading })
               transition={{ duration: 0.8, ease: EASE, delay: 0.38 }}
               className="dash-hero__sub"
             >
-              Every action you complete becomes measurable progress.
+              Complete operations to earn XP, gold, and attributes.
             </motion.p>
           </div>
 

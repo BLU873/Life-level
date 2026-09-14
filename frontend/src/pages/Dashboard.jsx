@@ -18,6 +18,9 @@ import {
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/format';
+import { playSound } from '../utils/sound';
+import { useFocusTimer } from '../hooks/useFocusTimer';
+import FocusTimerPanel from '../components/focus/FocusTimerPanel';
 import Skeleton from '../components/ui/Skeleton';
 import AuthenticatedHero from '../components/dashboard/AuthenticatedHero';
 import {
@@ -29,6 +32,7 @@ import {
   ProgressBar,
   RankBadge,
   TacticalButton,
+  tacticalButtonClasses,
 } from '../components/tactical';
 
 const ATTRIBUTES = [
@@ -59,6 +63,7 @@ function HudCell({ label, children, className = '' }) {
 }
 
 function TopHud({ character, username }) {
+  const reduced = useReducedMotion();
   const xpInto = character.xpIntoCurrentLevel ?? 0;
   const xpNeed = character.xpRequiredForNextLevel ?? 1;
 
@@ -66,7 +71,7 @@ function TopHud({ character, username }) {
     <div className="tact-clip border border-line bg-surface">
       <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-steel">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" style={reduced ? { animation: 'none' } : undefined} />
           System // Online
         </div>
         <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-text-3 sm:inline">
@@ -157,6 +162,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const focusTimer = useFocusTimer();
+
+  // Established focus-session completion sound (ships with the app, unused until now).
+  useEffect(() => {
+    if (focusTimer.justCompleted) playSound('focus-complete');
+  }, [focusTimer.justCompleted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -207,6 +218,11 @@ export default function Dashboard() {
   }, [reloadKey]);
 
   const arcSegments = dailyProgress?.totalQuests > 0 ? dailyProgress.totalQuests : 4;
+
+  const focusQuestTitle = focusTimer.session?.questId
+    ? quests.find((q) => q.id === focusTimer.session.questId)?.title || null
+    : null;
+  const showFocusPanel = Boolean(focusTimer.session || focusTimer.justCompleted);
 
   return (
     <div className="dash-page">
@@ -406,6 +422,10 @@ export default function Dashboard() {
               </TacticalPanel>
             )}
 
+            {showFocusPanel && (
+              <FocusTimerPanel timer={focusTimer} questTitle={focusQuestTitle} />
+            )}
+
             <div className="grid gap-3 md:grid-cols-2">
               <TacticalPanel brackets className="order-2 md:order-1">
                 <SectionHeader index="01" title="Attributes" />
@@ -443,12 +463,9 @@ export default function Dashboard() {
                         <p className="font-mono text-xs uppercase tracking-[0.2em] text-text-2">
                           No active operations
                         </p>
-                        <p className="mt-1 text-sm text-text-3">Command is clear.</p>
                       </div>
-                      <Link to="/quests">
-                        <TacticalButton variant="ghost" size="sm">
-                          Open War Room
-                        </TacticalButton>
+                      <Link to="/quests" className={tacticalButtonClasses('ghost', 'sm')}>
+                        Open War Room
                       </Link>
                     </div>
                   )}

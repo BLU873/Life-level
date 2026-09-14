@@ -220,7 +220,7 @@ export default function Campaign() {
                       Campaign // Log
                     </h1>
                     <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-steel">
-                      Season 01 // Origin
+                      {monthLabel}
                     </p>
                   </div>
                 </div>
@@ -239,7 +239,7 @@ export default function Campaign() {
             </TacticalPanel>
           </motion.div>
 
-          <div className="grid items-start gap-3 md:grid-cols-[1fr_360px]">
+          <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
             <CampaignCalendar
               calendarMap={calendarMap}
               viewedMonth={viewedMonth}

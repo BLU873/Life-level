@@ -98,9 +98,10 @@ export default function Modal({ isOpen, onClose, title, description, children, s
                 )}
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="-mt-1 -mr-1 rounded-lg p-1.5 text-text-3 transition-colors hover:bg-surface-2 hover:text-text"
-                aria-label="Close"
+                aria-label={title ? `Close ${title}` : 'Close dialog'}
               >
                 <X size={18} />
               </button>

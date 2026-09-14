@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   Plus,
@@ -13,6 +13,7 @@ import {
 import api from '../services/api';
 import { playSound } from '../utils/sound';
 import { useQuestCompletion } from '../hooks/useQuestCompletion';
+import { isFocusConflict, focusConflictMessage } from '../hooks/useFocusTimer';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Skeleton from '../components/ui/Skeleton';
@@ -46,11 +47,15 @@ function HudCell({ label, children, className = '' }) {
 }
 
 function Select({ label, error, className = '', children, ...props }) {
+  const selectId = useId();
+  const errorId = useId();
   return (
     <div className="space-y-1.5">
-      {label && <label className="block font-mono text-[11px] uppercase tracking-[0.18em] text-steel">{label}</label>}
+      {label && <label htmlFor={selectId} className="block font-mono text-[11px] uppercase tracking-[0.18em] text-steel">{label}</label>}
       <select
+        id={selectId}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         className={`
           h-10 w-full rounded-[4px] border border-line bg-surface px-3.5 text-sm text-text
           transition-all duration-150
@@ -62,10 +67,12 @@ function Select({ label, error, className = '', children, ...props }) {
       >
         {children}
       </select>
-      {error && <p className="text-[13px] text-danger">{error}</p>}
+      {error && <p id={errorId} className="text-[13px] text-danger">{error}</p>}
     </div>
   );
 }
+
+const FOCUS_PRESETS = [15, 25, 45, 60, 90];
 
 function OperationFormModal({ mode, quest, onClose, onSaved, notify }) {
   const [title, setTitle] = useState(quest?.title ?? '');
@@ -73,6 +80,8 @@ function OperationFormModal({ mode, quest, onClose, onSaved, notify }) {
   const [category, setCategory] = useState(quest?.category ?? 'STUDY');
   const [difficulty, setDifficulty] = useState(quest?.difficulty ?? 'EASY');
   const [isRecurring, setIsRecurring] = useState(quest?.isRecurring ?? false);
+  const [focusEnabled, setFocusEnabled] = useState(false);
+  const [focusMinutes, setFocusMinutes] = useState(25);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -87,12 +96,31 @@ function OperationFormModal({ mode, quest, onClose, onSaved, notify }) {
     try {
       const payload = { title: title.trim(), description: description.trim(), category, difficulty, isRecurring };
       if (mode === 'edit') {
+        // Editing never starts, resets or touches a focus timer.
         await api.put(`/quests/${quest.id}`, payload);
+        notify('Operation updated.');
       } else {
-        await api.post('/quests', payload);
+        const created = (await api.post('/quests', payload)).data.data.quest;
         playSound('operation-created');
+        // The timer starts ONLY after the operation was created successfully.
+        let message = 'Operation created.';
+        let messageType = 'success';
+        if (focusEnabled) {
+          try {
+            await api.post('/focus', {
+              plannedSeconds: focusMinutes * 60,
+              questId: created.id,
+            });
+            message = `Operation created. Focus timer started (${focusMinutes} MIN).`;
+          } catch (focusErr) {
+            message = isFocusConflict(focusErr)
+              ? `Operation created. ${focusConflictMessage()}`
+              : 'Operation created. Focus timer could not start.';
+            messageType = 'error';
+          }
+        }
+        notify(message, messageType);
       }
-      notify(mode === 'edit' ? 'Operation updated.' : 'Operation created.');
       onSaved();
     } catch (err) {
       setError(err.response?.data?.error || (mode === 'edit' ? 'Could not update the operation.' : 'Could not create the operation.'));
@@ -114,7 +142,7 @@ function OperationFormModal({ mode, quest, onClose, onSaved, notify }) {
     >
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         {error && (
-          <div className="rounded-[4px] border border-danger/25 bg-danger/5 px-3.5 py-2.5 text-sm text-danger">{error}</div>
+          <div role="alert" className="rounded-[4px] border border-danger/25 bg-danger/5 px-3.5 py-2.5 text-sm text-danger">{error}</div>
         )}
         <Input
           label="Title"
@@ -156,6 +184,66 @@ function OperationFormModal({ mode, quest, onClose, onSaved, notify }) {
           />
           Recurring operation
         </label>
+        {mode === 'create' && (
+          <div className="space-y-2.5 rounded-[4px] border border-line bg-surface-2/50 p-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <span id="focus-timer-label" className="font-mono text-[11px] uppercase tracking-[0.18em] text-steel">
+                Focus timer
+              </span>
+              <div className="flex rounded-[4px] border border-line bg-surface p-0.5" role="group" aria-labelledby="focus-timer-label">
+                {[
+                  { value: false, label: 'No' },
+                  { value: true, label: 'Yes' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={focusEnabled === value}
+                    onClick={() => setFocusEnabled(value)}
+                    className={`
+                      rounded-[3px] px-4 h-9 font-mono text-[11px] uppercase tracking-[0.16em]
+                      transition-colors duration-150
+                      ${focusEnabled === value ? 'bg-tact/10 text-tact' : 'text-text-2 hover:text-text'}
+                    `}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {focusEnabled && (
+              <div className="space-y-2">
+                <span id="focus-duration-label" className="block font-mono text-[11px] uppercase tracking-[0.18em] text-steel">
+                  Duration
+                </span>
+                <div className="flex flex-wrap gap-2" role="group" aria-labelledby="focus-duration-label">
+                  {FOCUS_PRESETS.map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      aria-pressed={focusMinutes === mins}
+                      onClick={() => setFocusMinutes(mins)}
+                      className={`
+                        tnum rounded-[4px] border px-3 h-10 font-mono text-[11px] uppercase tracking-[0.14em]
+                        transition-colors duration-150
+                        ${
+                          focusMinutes === mins
+                            ? 'border-tact/60 bg-tact/10 text-tact'
+                            : 'border-line bg-surface text-text-2 hover:text-text'
+                        }
+                      `}
+                    >
+                      {mins} min
+                    </button>
+                  ))}
+                </div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-3">
+                  Timer starts on creation · track it live on Command
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <TacticalButton type="button" variant="steel" size="sm" onClick={onClose}>
             Cancel
@@ -268,6 +356,7 @@ export default function Quests() {
   const [quests, setQuests] = useState([]);
   const [character, setCharacter] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
+  const [focusSession, setFocusSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -287,12 +376,17 @@ export default function Quests() {
     let cancelled = false;
     setLoading(true);
     setPageError('');
-    Promise.all([api.get('/quests', { params: { status: 'all' } }), api.get('/character')])
-      .then(([q, c]) => {
+    Promise.all([
+      api.get('/quests', { params: { status: 'all' } }),
+      api.get('/character'),
+      api.get('/focus').catch(() => null),
+    ])
+      .then(([q, c, f]) => {
         if (cancelled) return;
         setQuests(q.data.data.quests || []);
         setCharacter(c.data.data.character);
         setDailyProgress(c.data.data.dailyProgress);
+        setFocusSession(f?.data?.data?.session || null);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -366,7 +460,7 @@ export default function Quests() {
       await completeQuest(quest);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      notify(err.response?.data?.error || 'Could not deploy the operation.', 'error');
+      notify(err.response?.data?.error || 'Could not complete the operation.', 'error');
     }
   }
 
@@ -385,7 +479,7 @@ async function handleDeleteConfirm() {
   }
 }
 
-function ProtocolSection({ group, index, completingId, onEdit, onDelete, onComplete }) {
+function ProtocolSection({ group, index, completingId, focusSession, onEdit, onDelete, onComplete }) {
   const label = CATEGORY_LABEL[group.category] || group.category;
   const classStatus = group.total > 0 && group.done >= group.total ? 'ready' : group.done > 0 ? 'active' : 'available';
   const classProgress = group.total > 0 ? Math.round((group.done / group.total) * 100) : 0;
@@ -412,6 +506,14 @@ function ProtocolSection({ group, index, completingId, onEdit, onDelete, onCompl
             key={q.id}
             quest={q}
             busy={completingId === q.id}
+            focusBadge={
+              focusSession && focusSession.questId === q.id
+                ? {
+                    minutes: Math.max(1, Math.round((focusSession.plannedSeconds ?? 0) / 60)),
+                    live: focusSession.status === 'ACTIVE',
+                  }
+                : null
+            }
             onEdit={() => onEdit(q)}
             onDelete={() => onDelete(q)}
             onComplete={() => onComplete(q)}
@@ -482,7 +584,7 @@ function ProtocolSection({ group, index, completingId, onEdit, onDelete, onCompl
           <TacticalPanel>
             <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2">
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-steel">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" style={reduced ? { animation: 'none' } : undefined} />
                 War Room // Online
               </div>
               <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-text-3 sm:inline">
@@ -601,6 +703,7 @@ function ProtocolSection({ group, index, completingId, onEdit, onDelete, onCompl
                         group={group}
                         index={String(i + 1).padStart(2, '0')}
                         completingId={completingId}
+                        focusSession={focusSession}
                         onEdit={openEdit}
                         onDelete={setDeletingQuest}
                         onComplete={handleComplete}
@@ -675,7 +778,7 @@ function ProtocolSection({ group, index, completingId, onEdit, onDelete, onCompl
             </TacticalButton>
             <TacticalButton variant="danger" size="sm" disabled={deleteBusy} onClick={handleDeleteConfirm}>
               <Trash2 size={14} />
-              Delete
+              {deleteBusy ? 'Deleting…' : 'Delete'}
             </TacticalButton>
           </div>
         </div>

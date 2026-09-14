@@ -47,7 +47,7 @@ export default function CompletionModal({ result, onClose }) {
   const showGold = (completion?.goldEarned ?? 0) > 0;
 
   return (
-    <Modal isOpen onClose={onClose} title={null} description={null} size="sm">
+    <Modal isOpen onClose={onClose} title="Operation complete" description={null} size="sm">
       <div className="flex flex-col items-center gap-4 text-center">
           <div className="flex h-11 w-11 items-center justify-center rounded-[6px] border border-success/30 bg-success/10 text-success">
             <Crosshair size={20} />
@@ -57,9 +57,9 @@ export default function CompletionModal({ result, onClose }) {
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-steel">
               Operations // War Room
             </p>
-            <h2 className="mt-1 font-ui text-lg font-bold uppercase tracking-[0.12em] text-text">
+            <p aria-hidden="true" className="mt-1 font-ui text-lg font-bold uppercase tracking-[0.12em] text-text">
               Operation Complete
-            </h2>
+            </p>
             <div className="mt-2 flex justify-center">
               <StatusBadge status="ready" label="Deployment Successful" />
             </div>

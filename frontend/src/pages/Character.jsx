@@ -31,11 +31,12 @@ import {
   ProgressBar,
   RankBadge,
   TacticalButton,
+  tacticalButtonClasses,
 } from '../components/tactical';
 
 const ATTRIBUTES = [
   { key: 'strength', label: 'Strength', color: 'strength' },
-  { key: 'intellect', label: 'Intelligence', color: 'intellect' },
+  { key: 'intellect', label: 'Intellect', color: 'intellect' },
   { key: 'discipline', label: 'Discipline', color: 'discipline' },
   { key: 'creativity', label: 'Creativity', color: 'creativity' },
   { key: 'social', label: 'Social', color: 'social' },
@@ -178,13 +179,12 @@ export default function Character() {
               <span className="font-mono text-xs text-text-2">
                 LEVEL <span className="tnum font-bold text-text">{character.level}</span>
               </span>
-              <StatusBadge status="active" label="Active" />
               <Link
                 to="/outpost"
                 className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-steel transition-colors hover:text-tact"
               >
                 <Castle size={12} />
-                Base // Outpost
+                Outpost // Base
                 <ArrowRight size={12} />
               </Link>
             </div>
@@ -222,14 +222,13 @@ export default function Character() {
 
         <div className="relative z-10 flex h-[300px] items-end justify-between gap-3 p-4 sm:h-[440px] sm:p-6">
           <HUDLabel tone="cream">Character // {operatorName}</HUDLabel>
-          <StatusBadge status="active" label="Online" />
         </div>
       </motion.section>
 
       {/* 02 // COMBAT PROFILE + 03 // OPERATOR STATUS */}
       <div className="grid gap-3 md:grid-cols-2">
         <TacticalPanel brackets>
-          <SectionHeader index="02" title="Combat Profile" />
+          <SectionHeader index="02" title="Attributes" />
           <div className="mt-4 grid gap-4">
             {ATTRIBUTES.map(({ key, label, color }, i) => (
               <motion.div
@@ -280,11 +279,9 @@ export default function Character() {
           index="04"
           title="Current Loadout"
           action={
-            <Link to="/loadout">
-              <TacticalButton variant="steel" size="sm">
-                <Swords size={13} />
-                Manage loadout
-              </TacticalButton>
+            <Link to="/loadout" className={tacticalButtonClasses('steel', 'sm')}>
+              <Swords size={13} />
+              Manage loadout
             </Link>
           }
         />
@@ -293,10 +290,8 @@ export default function Character() {
             <div className="flex flex-col items-center gap-3 rounded-md border border-line bg-surface-2/60 py-8 text-center">
               <Shield size={20} className="text-steel" />
               <p className="text-sm text-text-2">No equipment assigned. Equip items from your loadout.</p>
-              <Link to="/loadout">
-                <TacticalButton variant="primary" size="sm">
-                  Open loadout
-                </TacticalButton>
+              <Link to="/loadout" className={tacticalButtonClasses('primary', 'sm')}>
+                Open loadout
               </Link>
             </div>
           ) : (

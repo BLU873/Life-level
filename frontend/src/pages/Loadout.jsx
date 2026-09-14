@@ -15,6 +15,7 @@ import {
   SectionHeader,
   TacticalButton,
   RankBadge,
+  tacticalButtonClasses,
 } from '../components/tactical';
 
 const TYPE_OPTIONS = [
@@ -174,11 +175,9 @@ export default function Loadout() {
                       <span className="hidden uppercase tracking-[0.16em] text-text-3 sm:inline">Gold</span>
                     </div>
                   )}
-                  <Link to="/character">
-                    <TacticalButton variant="ghost" size="sm">
-                      <UserCircle size={13} />
-                      View character
-                    </TacticalButton>
+                  <Link to="/character" className={tacticalButtonClasses('ghost', 'sm')}>
+                    <UserCircle size={13} />
+                    View character
                   </Link>
                 </div>
               </div>
@@ -216,7 +215,7 @@ export default function Loadout() {
                             disabled={equippingId === owned.id}
                             onClick={() => handleUnequip(owned)}
                           >
-                            {equippingId === owned.id ? <Loader2 size={13} className="animate-spin" /> : 'Unequip'}
+                            {equippingId === owned.id ? <><Loader2 size={13} className="animate-spin" aria-hidden="true" />Unequipping…</> : 'Unequip'}
                           </TacticalButton>
                         </div>
                       ))}
@@ -224,11 +223,9 @@ export default function Loadout() {
                   ) : (
                     <div className="mt-auto flex items-center justify-between gap-2 pt-2">
                       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-3">Empty slot</p>
-                      <Link to="/shop">
-                        <TacticalButton variant="ghost" size="sm">
-                          <Plus size={13} />
-                          Acquire
-                        </TacticalButton>
+                      <Link to="/shop" className={tacticalButtonClasses('ghost', 'sm')}>
+                        <Plus size={13} />
+                        Browse Shop
                       </Link>
                     </div>
                   )}
@@ -247,6 +244,7 @@ export default function Loadout() {
                   {TYPE_OPTIONS.map((opt) => (
                     <button
                       key={opt.key}
+                      type="button"
                       onClick={() => setFilter(opt.key)}
                       aria-pressed={filter === opt.key}
                       className={`
@@ -274,11 +272,9 @@ export default function Loadout() {
                 {inventory.length === 0 && (
                   <>
                     <p className="text-sm text-text-3">Earn gold by completing operations, then spend it in the arsenal.</p>
-                    <Link to="/shop">
-                      <TacticalButton variant="primary" size="sm">
-                        <Coins size={13} />
-                        Visit the arsenal
-                      </TacticalButton>
+                    <Link to="/shop" className={tacticalButtonClasses('primary', 'sm')}>
+                      <Coins size={13} />
+                      Browse Shop
                     </Link>
                   </>
                 )}
@@ -327,7 +323,7 @@ export default function Loadout() {
                                 disabled={busy}
                                 onClick={() => handleUnequip(owned)}
                               >
-                                {busy ? <Loader2 size={13} className="animate-spin" /> : 'Unequip'}
+                                {busy ? <><Loader2 size={13} className="animate-spin" aria-hidden="true" />Unequipping…</> : 'Unequip'}
                               </TacticalButton>
                             ) : (
                               <TacticalButton
@@ -336,7 +332,7 @@ export default function Loadout() {
                                 disabled={busy}
                                 onClick={() => handleEquip(owned)}
                               >
-                                {busy ? <Loader2 size={13} className="animate-spin" /> : 'Equip'}
+                                {busy ? <><Loader2 size={13} className="animate-spin" aria-hidden="true" />Equipping…</> : 'Equip'}
                               </TacticalButton>
                             )}
                           </div>
