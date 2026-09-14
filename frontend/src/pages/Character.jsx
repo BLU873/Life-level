@@ -21,6 +21,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Skeleton from '../components/ui/Skeleton';
 import OperatorVisual from '../components/OperatorVisual';
+import OperatorArchive from '../components/OperatorArchive';
 import { preloadOperatorVisuals } from '../lib/characterVisual';
 import {
   TacticalPanel,
@@ -363,6 +364,9 @@ export default function Character() {
           })}
         </div>
       </TacticalPanel>
+
+      {/* 06 // OPERATOR ARCHIVE — progression collection, below the current operator */}
+      <OperatorArchive level={character.level} />
     </div>
   );
 }

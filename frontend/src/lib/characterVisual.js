@@ -40,6 +40,31 @@ export function getCharacterVisual(level) {
   return OPERATOR_IMAGE_RONIN;
 }
 
+// Archive milestones derived from the SAME tier table above — the single
+// source of truth for both the live visual and the collection display.
+// Entry 0 is the starting Ronin (levels 1-4); each tier covers its minLevel
+// up to the next milestone (40+ is open-ended, maxLevel null).
+export function getArchiveMilestones() {
+  const asc = [...OPERATOR_VISUAL_TIERS].sort((a, b) => a.minLevel - b.minLevel);
+  const entries = [{ minLevel: 1, maxLevel: 4, src: OPERATOR_IMAGE_RONIN, label: 'RONIN' }];
+  asc.forEach((t, i) => {
+    const next = asc[i + 1];
+    entries.push({
+      minLevel: t.minLevel,
+      maxLevel: next ? next.minLevel - 1 : null,
+      src: t.src,
+      label: `OPERATOR // LEVEL ${t.minLevel}`,
+    });
+  });
+  return entries;
+}
+
+// The milestone a level currently displays (mirrors getCharacterVisual).
+export function getCurrentMilestone(level) {
+  const tier = OPERATOR_VISUAL_TIERS.find((t) => level >= t.minLevel);
+  return tier ? tier.minLevel : 1;
+}
+
 // Visual tiers crossed by a single progression step (levelBefore -> levelAfter).
 // Only real crossings are returned; a step that does not cross a milestone is
 // empty. Handles multi-level leaps defensively (one tier per milestone).
