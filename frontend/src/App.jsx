@@ -19,6 +19,7 @@ const Achievements = lazy(() => import('./pages/Achievements'));
 const Campaign = lazy(() => import('./pages/Campaign'));
 const Intel = lazy(() => import('./pages/Intel'));
 const Outpost = lazy(() => import('./pages/Outpost'));
+const FocusRoom = lazy(() => import('./pages/FocusRoom'));
 const Shop = lazy(() => import('./pages/Shop'));
 const History = lazy(() => import('./pages/History'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/campaign" element={<Campaign />} />
             <Route path="/intel" element={<Intel />} />
             <Route path="/outpost" element={<Outpost />} />
+            <Route path="/focus-room" element={<FocusRoom />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/history" element={<History />} />
             <Route path="/settings" element={<Settings />} />

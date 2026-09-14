@@ -17,6 +17,7 @@ import {
   Settings,
   Crosshair,
   Castle,
+  Users,
   LogOut,
   Sun,
   Moon,
@@ -53,6 +54,7 @@ const navItems = [
   { to: '/achievements', icon: Trophy, label: 'Achievements' },
   { to: '/campaign', icon: CalendarDays, label: 'Campaign' },
   { to: '/intel', icon: RadioTower, label: 'Intel' },
+  { to: '/focus-room', icon: Users, label: 'Focus Room' },
   { to: '/shop', icon: ShoppingBag, label: 'Shop' },
   { to: '/history', icon: Clock, label: 'History' },
   { to: '/settings', icon: Settings, label: 'Settings' },
@@ -209,7 +211,7 @@ export default function AppLayout() {
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-xl md:hidden">
         <div className="grid grid-cols-7">
           {navItems
-            .filter((i) => i.to !== '/settings' && i.to !== '/history' && i.to !== '/shop' && i.to !== '/outpost')
+            .filter((i) => i.to !== '/settings' && i.to !== '/history' && i.to !== '/shop' && i.to !== '/outpost' && i.to !== '/focus-room')
             .map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}

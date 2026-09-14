@@ -12,13 +12,15 @@ const {
 } = require('../middleware/auth');
 const { ApiError } = require('../utils/apiError');
 const { asyncHandler } = require('../utils/helpers');
+const { ensurePlayerTag } = require('../services/focusRoomService');
 
 const router = express.Router();
 
 const BCRYPT_ROUNDS = 10;
 
 // Fields safe to return to the client. Password hashes are never selected.
-const USER_SELECT = { id: true, username: true, email: true, createdAt: true };
+// playerTag is public room identity (e.g. BLU873, shown as @BLU873).
+const USER_SELECT = { id: true, username: true, email: true, playerTag: true, createdAt: true };
 const CHARACTER_SELECT = {
   id: true,
   level: true,
@@ -111,8 +113,10 @@ router.post(
     const { user, character } = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: { username, email, passwordHash },
-        select: USER_SELECT,
+        select: { id: true, username: true, email: true, createdAt: true },
       });
+      await ensurePlayerTag(createdUser.id, tx);
+      const taggedUser = await tx.user.findUnique({ where: { id: createdUser.id }, select: USER_SELECT });
 
       // Character defaults are defined in the schema (level 1, XP 0, gold 0,
       // attributes 1, streaks 0).
@@ -121,7 +125,7 @@ router.post(
         select: CHARACTER_SELECT,
       });
 
-      return { user: createdUser, character: createdCharacter };
+      return { user: taggedUser, character: createdCharacter };
     });
 
     const token = generateToken(user.id);
@@ -161,7 +165,9 @@ router.post(
     const token = generateToken(user.id);
     setTokenCookie(res, token);
 
-    const safeUser = { id: user.id, username: user.username, email: user.email, createdAt: user.createdAt };
+    // Backfill the public player tag for accounts created before it existed.
+    const playerTag = user.playerTag || (await ensurePlayerTag(user.id));
+    const safeUser = { id: user.id, username: user.username, email: user.email, playerTag, createdAt: user.createdAt };
     return res.status(200).json({ success: true, data: { user: safeUser, character } });
   })
 );

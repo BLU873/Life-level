@@ -14,6 +14,7 @@ import {
   RadioTower,
   Castle,
   ExternalLink,
+  Users,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -159,6 +160,7 @@ export default function Dashboard() {
   const [achievements, setAchievements] = useState([]);
   const [calendarDays, setCalendarDays] = useState([]);
   const [intelItems, setIntelItems] = useState([]);
+  const [focusRoom, setFocusRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
@@ -179,8 +181,9 @@ export default function Dashboard() {
       api.get('/activity', { params: { limit: 6 } }),
       api.get('/achievements'),
       api.get('/calendar', { params: { days: 7 } }),
+      api.get('/focus-rooms/mine').catch(() => null),
     ])
-      .then(([ch, qs, act, ach, cal]) => {
+      .then(([ch, qs, act, ach, cal, fr]) => {
         if (cancelled) return;
         setCharacter(ch.data.data.character);
         setDailyProgress(ch.data.data.dailyProgress);
@@ -188,6 +191,7 @@ export default function Dashboard() {
         setActivity(act.data.data.items);
         setAchievements(ach.data.data.achievements);
         setCalendarDays(cal.data.data.calendar);
+        setFocusRoom(fr?.data?.data?.room || null);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -425,6 +429,31 @@ export default function Dashboard() {
             {showFocusPanel && (
               <FocusTimerPanel timer={focusTimer} questTitle={focusQuestTitle} />
             )}
+
+            <TacticalPanel>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] border border-tact/30 bg-tact/10 text-tact">
+                    <Users size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <HUDLabel tone="steel">Focus Room</HUDLabel>
+                    <p className="tnum truncate font-mono text-[11px] uppercase tracking-[0.14em] text-text-2">
+                      {focusRoom
+                        ? `${focusRoom.roomCode} · ${focusRoom.onlineCount} online`
+                        : 'Squad up'}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to="/focus-room"
+                  className="flex shrink-0 items-center gap-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-tact hover:text-tact-2"
+                >
+                  Open
+                  <ArrowRight size={12} />
+                </Link>
+              </div>
+            </TacticalPanel>
 
             <div className="grid gap-3 md:grid-cols-2">
               <TacticalPanel brackets className="order-2 md:order-1">

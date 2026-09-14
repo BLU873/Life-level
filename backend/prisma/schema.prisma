@@ -12,6 +12,9 @@ model User {
   username     String   @unique
   email        String   @unique
   passwordHash String
+  // Public room identity (e.g. BLU873, shown as @BLU873). Nullable so
+  // existing rows backfill lazily; always set for room members.
+  playerTag    String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -25,6 +28,8 @@ model User {
   routines     Routine[]
   journeys     Journey[]
   rewards      CustomReward[]
+  ownedRooms   FocusRoom[]      @relation("RoomOwner")
+  roomMemberships RoomMembership[]
 }
 
 model Character {
@@ -83,6 +88,7 @@ model Quest {
   completions  QuestCompletion[]
   xpHistory    XpHistory[]
   focusSessions FocusSession[]
+  roomGoalFor  RoomMembership[]
 }
 
 model QuestCompletion {
@@ -187,6 +193,54 @@ model FocusSession {
   startedAt      DateTime @default(now())
   completedAt    DateTime?
   createdAt      DateTime @default(now())
+}
+
+model FocusRoom {
+  id        String   @id @default(uuid())
+  // Short human-friendly public code (e.g. V7K9P). Server-generated, unique.
+  code      String   @unique
+  ownerId   String
+  owner     User     @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  closedAt  DateTime?
+
+  memberships RoomMembership[]
+  sessions    RoomSession[]
+}
+
+model RoomSession {
+  id              String   @id @default(uuid())
+  roomId          String
+  room            FocusRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  durationSeconds Int
+  // Elapsed seconds banked across pause/resume. Authoritative remaining =
+  // durationSeconds - bankedSeconds - (RUNNING ? now - startedAt : 0).
+  bankedSeconds   Int      @default(0)
+  startedAt       DateTime @default(now())
+  status          String   @default("RUNNING")
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([roomId, status])
+}
+
+model RoomMembership {
+  id          String    @id @default(uuid())
+  roomId      String
+  room        FocusRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Optional public goal, resolved live from an owned ACTIVE quest.
+  goalQuestId String?
+  goalQuest   Quest?    @relation(fields: [goalQuestId], references: [id], onDelete: SetNull)
+  joinedAt    DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  leftAt      DateTime?
+
+  @@index([roomId, leftAt])
+  @@index([userId, leftAt])
 }
 
 model Routine {
