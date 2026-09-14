@@ -31,53 +31,67 @@ export default function Settings() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl space-y-3">
       <PageHeader
         kicker="System // Preferences"
         title="Settings"
         description="Manage your account and preferences."
       />
 
-      <div className="space-y-5">
-        {/* Account */}
-        <TacticalPanel>
-          <h2 className="text-sm font-semibold tracking-tight text-text">Account</h2>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-sm font-semibold text-text-2">
-              <UserCircle size={28} />
+      {/* Quick controls — the single primary row for identity, theme, sign out */}
+      <TacticalPanel>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div
+              aria-hidden="true"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-xs font-semibold text-text-2"
+            >
+              {user?.username?.[0]?.toUpperCase() || <UserCircle size={18} />}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-text">{user?.username}</p>
-              <p className="truncate text-[13px] text-text-2">{user?.email}</p>
+              <p className="truncate text-xs text-text-3">{user?.email}</p>
             </div>
           </div>
-        </TacticalPanel>
-
-        {/* Appearance */}
-        <TacticalPanel>
-          <h2 className="text-sm font-semibold tracking-tight text-text">Appearance</h2>
-          <p className="mt-1 text-[13px] text-text-2">Choose how LIFE//LEVEL looks on this device.</p>
-
-          <div className="mt-4 inline-flex rounded-[4px] border border-line bg-surface p-0.5">
+          <div
+            role="group"
+            aria-label="Color theme"
+            className="flex shrink-0 rounded-[4px] border border-line bg-surface p-0.5"
+          >
             {themeOptions.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setPreference(value)}
                 aria-pressed={preference === value}
+                aria-label={`${label} theme`}
+                title={`${label} theme`}
                 className={`
-                  inline-flex h-8 items-center gap-2 rounded-[3px] px-3 font-mono text-[11px] uppercase tracking-[0.16em]
+                  inline-flex h-8 items-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[11px] uppercase tracking-[0.16em]
                   transition-colors duration-150
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tact/40
                   ${preference === value ? 'bg-tact/10 text-tact' : 'text-text-2 hover:text-text'}
                 `}
               >
-                <Icon size={15} />
+                <Icon size={14} />
                 {label}
               </button>
             ))}
           </div>
-        </TacticalPanel>
+          <TacticalButton
+            variant="danger"
+            size="sm"
+            onClick={handleLogout}
+            aria-label="Log out"
+            className="shrink-0"
+          >
+            <LogOut size={14} />
+            Log out
+          </TacticalButton>
+        </div>
+      </TacticalPanel>
 
+      <div className="space-y-5">
         {/* Sound */}
         <TacticalPanel>
           <h2 className="text-sm font-semibold tracking-tight text-text">Sound</h2>
@@ -112,20 +126,6 @@ export default function Settings() {
               <VolumeX size={15} />
               Off
             </button>
-          </div>
-        </TacticalPanel>
-
-        {/* Sign out */}
-        <TacticalPanel>
-          <h2 className="text-sm font-semibold tracking-tight text-text">Sign out</h2>
-          <p className="mt-1 text-[13px] text-text-2">
-            Log out of LIFE//LEVEL on this device.
-          </p>
-          <div className="mt-4">
-            <TacticalButton variant="danger" onClick={handleLogout}>
-              <LogOut size={16} />
-              Log out
-            </TacticalButton>
           </div>
         </TacticalPanel>
       </div>
