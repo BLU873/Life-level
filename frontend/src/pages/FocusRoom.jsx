@@ -13,6 +13,7 @@ import {
   TacticalButton,
 } from '../components/tactical';
 import RoomSessionPanel from '../components/focus/RoomSessionPanel';
+import RoomChatPanel from '../components/focus/RoomChatPanel';
 import { playSound } from '../utils/sound';
 
 const CREATE_MINUTES = [15, 25, 45, 60, 90];
@@ -243,6 +244,8 @@ export default function FocusRoom() {
   const [roomAt, setRoomAt] = useState(() => Date.now());
   const [sessionBusy, setSessionBusy] = useState(null);
   const [sessionError, setSessionError] = useState('');
+  const [chatBusy, setChatBusy] = useState(null);
+  const [chatError, setChatError] = useState('');
   const roomCodeRef = useRef(null);
   const pollGuard = useRef(false);
 
@@ -482,6 +485,46 @@ export default function FocusRoom() {
       }
     } finally {
       setSessionBusy(null);
+    }
+  }
+
+  async function handleChatSend(text) {
+    const code = roomCodeRef.current;
+    if (!code || chatBusy) return false;
+    setChatBusy('send');
+    setChatError('');
+    try {
+      const res = await api.post(`/focus-rooms/${code}/messages`, { body: text });
+      adoptRoom(res.data.data.room);
+      return true;
+    } catch (err) {
+      if (err?.response?.status === 404) {
+        adoptRoom(await loadMine());
+      } else {
+        setChatError(sessionMessage(err, 'Could not send the message.'));
+      }
+      return false;
+    } finally {
+      setChatBusy(null);
+    }
+  }
+
+  async function handleChatToggle(enabled) {
+    const code = roomCodeRef.current;
+    if (!code || chatBusy) return;
+    setChatBusy('toggle');
+    setChatError('');
+    try {
+      const res = await api.put(`/focus-rooms/${code}/chat`, { enabled });
+      adoptRoom(res.data.data.room);
+    } catch (err) {
+      if (err?.response?.status === 404) {
+        adoptRoom(await loadMine());
+      } else {
+        setChatError(sessionMessage(err, 'Could not change chat state.'));
+      }
+    } finally {
+      setChatBusy(null);
     }
   }
 
@@ -737,6 +780,17 @@ export default function FocusRoom() {
             onResume={() => sessionAction('resume')}
             onStop={() => sessionAction('stop')}
             onExpired={handleSessionExpired}
+          />
+
+          <RoomChatPanel
+            messages={room.messages || []}
+            chatEnabled={room.chatEnabled !== false}
+            isHost={room.isOwner}
+            myPublicId={user?.playerTag ? `@${user.playerTag}` : null}
+            busy={chatBusy}
+            error={chatError}
+            onSend={handleChatSend}
+            onToggle={handleChatToggle}
           />
 
           <TacticalPanel>

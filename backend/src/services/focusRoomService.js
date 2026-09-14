@@ -45,6 +45,17 @@ function isCodeFormat(value) {
   return /^[A-Z2-9]{4,6}$/.test(value);
 }
 
+/**
+ * Tactical room chat (Phase 19C). History + enabled flag ride inside the
+ * room payload, so the existing 15s poll / 20s heartbeat deliver messages
+ * with zero new loops, sockets, or dependencies. Server timestamps order
+ * everything; bodies render as plain text (never HTML).
+ */
+const CHAT_HISTORY_LIMIT = 50;
+const CHAT_BODY_MAX = 500;
+const CHAT_RATE_WINDOW_MS = 10 * 1000;
+const CHAT_RATE_MAX = 8;
+
 const AGENDA_MODES = ['SHARED', 'INDIVIDUAL'];
 const ROOM_NAME_MAX = 60;
 const ROOM_PASSWORD_MIN = 4;
@@ -148,6 +159,7 @@ async function expireStale(roomId, tx) {
   });
   for (const m of stale) {
     await tx.roomMembership.update({ where: { id: m.id }, data: { leftAt: new Date() } });
+    await addSystemMessage(roomId, m.userId, `${await memberDisplayName(m.userId, tx)} left the room.`, tx);
     const room = await tx.focusRoom.findUnique({ where: { id: roomId }, select: { ownerId: true } });
     if (room && room.ownerId === m.userId) {
       await transferOwnership(roomId, tx);
@@ -157,6 +169,58 @@ async function expireStale(roomId, tx) {
   if (remaining === 0) {
     await tx.focusRoom.update({ where: { id: roomId }, data: { isActive: false, closedAt: new Date() } });
   }
+}
+
+async function memberDisplayName(userId, tx) {
+  const u = await tx.user.findUnique({
+    where: { id: userId },
+    select: { username: true, character: { select: { displayName: true } } },
+  });
+  if (!u) return 'Operator';
+  return u.character?.displayName || u.username;
+}
+
+async function addSystemMessage(roomId, senderId, text, tx) {
+  await tx.roomMessage.create({ data: { roomId, senderId, kind: 'SYSTEM', body: text } });
+}
+
+/** Latest messages, chronological. Public identity only — never ids/tokens. */
+async function roomMessages(roomId, tx = prisma) {
+  const rows = await tx.roomMessage.findMany({
+    where: { roomId },
+    include: {
+      sender: { select: { username: true, playerTag: true, character: { select: { displayName: true } } } },
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: CHAT_HISTORY_LIMIT,
+  });
+  rows.reverse();
+  const out = [];
+  for (const r of rows) {
+    if (r.kind === 'SYSTEM') {
+      out.push({ kind: 'SYSTEM', displayName: 'SYSTEM', publicId: null, body: r.body, createdAt: r.createdAt });
+      continue;
+    }
+    const tag = r.sender?.playerTag || (r.senderId ? await ensurePlayerTag(r.senderId, tx) : 'UNKNOWN');
+    out.push({
+      kind: 'USER',
+      displayName: r.sender?.character?.displayName || r.sender?.username || 'Operator',
+      publicId: `@${tag}`,
+      body: r.body,
+      createdAt: r.createdAt,
+    });
+  }
+  return out;
+}
+
+function validateChatBody(value) {
+  if (typeof value !== 'string') throw ApiError.badRequest('CHAT_BODY_INVALID', 'Message must be text.');
+  const body = value.trim();
+  if (!body) throw ApiError.badRequest('CHAT_BODY_REQUIRED', 'Message cannot be empty.');
+  if (body.length > CHAT_BODY_MAX) {
+    throw ApiError.badRequest('CHAT_BODY_INVALID', `Message must be ${CHAT_BODY_MAX} characters or fewer.`);
+  }
+  return body;
 }
 
 async function resolveGoalTitle(memberUserId, goalQuestId, tx) {
@@ -368,11 +432,13 @@ async function roomPayload(roomId, viewerId, tx = prisma) {
     name: room.name || 'SQUAD ROOM',
     agendaMode: AGENDA_MODES.includes(room.agendaMode) ? room.agendaMode : 'INDIVIDUAL',
     agendaText: room.agendaText || '',
+    chatEnabled: room.chatEnabled !== false,
     createdAt: room.createdAt,
     isOwner: room.ownerId === viewerId,
     onlineCount: members.filter((m) => m.status === 'ONLINE').length,
     memberCount: members.length,
     members: members.map(({ joinedAt, ...rest }) => rest),
+    messages: await roomMessages(room.id, tx),
     session: publicSession(session),
   };
 }
@@ -473,6 +539,7 @@ async function joinRoom(userId, rawCode, questId = undefined, password = undefin
       data: { roomId: room.id, userId, goalQuestId: goal, lastSeenAt: new Date() },
     });
     await ensurePlayerTag(userId, tx);
+    await addSystemMessage(room.id, userId, `${await memberDisplayName(userId, tx)} joined the room.`, tx);
     return { room: await roomPayload(room.id, userId, tx), rejoined: false };
   });
 }
@@ -510,6 +577,7 @@ async function leaveRoom(userId, rawCode) {
     const membership = await tx.roomMembership.findFirst({ where: { roomId: room.id, userId, leftAt: null } });
     if (!membership) throw ApiError.notFound('ROOM_NOT_IN_ROOM', 'You are not in this room.');
     await tx.roomMembership.update({ where: { id: membership.id }, data: { leftAt: new Date() } });
+    await addSystemMessage(room.id, userId, `${await memberDisplayName(userId, tx)} left the room.`, tx);
     if (room.ownerId === userId) {
       await transferOwnership(room.id, tx);
     } else if ((await activeMemberCount(room.id, tx)) === 0) {
@@ -536,6 +604,40 @@ async function updateRoom(userId, rawCode, { name, agendaMode, agendaText } = {}
     if (agendaMode !== undefined) data.agendaMode = validateAgendaMode(agendaMode);
     if (agendaText !== undefined) data.agendaText = validateAgendaText(agendaText);
     await tx.focusRoom.update({ where: { id: room.id }, data });
+    return roomPayload(room.id, userId, tx);
+  });
+}
+
+async function sendMessage(userId, rawCode, rawBody) {
+  const code = normalizeCode(rawCode);
+  if (!isCodeFormat(code)) throw ApiError.notFound('ROOM_NOT_FOUND', 'Room not found.');
+  const body = validateChatBody(rawBody);
+  return prisma.$transaction(async (tx) => {
+    const { room } = await requireMembership(userId, code, tx);
+    const fresh = await tx.focusRoom.findUnique({ where: { id: room.id }, select: { chatEnabled: true } });
+    if (fresh && fresh.chatEnabled === false) {
+      throw ApiError.forbidden('CHAT_DISABLED', 'Chat is disabled by the room owner.');
+    }
+    const windowStart = new Date(Date.now() - CHAT_RATE_WINDOW_MS);
+    const recent = await tx.roomMessage.count({
+      where: { roomId: room.id, senderId: userId, kind: 'USER', createdAt: { gte: windowStart } },
+    });
+    if (recent >= CHAT_RATE_MAX) {
+      throw ApiError.tooMany('ROOM_CHAT_LIMIT', 'Slow down — too many messages at once.');
+    }
+    await tx.roomMessage.create({ data: { roomId: room.id, senderId: userId, kind: 'USER', body } });
+    return roomPayload(room.id, userId, tx);
+  });
+}
+
+/** Owner-only chat kill-switch. Session and presence ignore it entirely. */
+async function setChatEnabled(userId, rawCode, enabled) {
+  const code = normalizeCode(rawCode);
+  if (!isCodeFormat(code)) throw ApiError.notFound('ROOM_NOT_FOUND', 'Room not found.');
+  if (typeof enabled !== 'boolean') throw ApiError.badRequest('ROOM_CHAT_INVALID', 'Enabled must be true or false.');
+  return prisma.$transaction(async (tx) => {
+    const { room } = await requireHost(userId, code, tx);
+    await tx.focusRoom.update({ where: { id: room.id }, data: { chatEnabled: enabled } });
     return roomPayload(room.id, userId, tx);
   });
 }
@@ -574,6 +676,8 @@ module.exports = {
   leaveRoom,
   updateRoom,
   changeRoomPassword,
+  sendMessage,
+  setChatEnabled,
   myRoom,
   ensurePlayerTag,
   normalizeCode,

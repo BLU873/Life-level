@@ -26,6 +26,10 @@ class ApiError extends Error {
   static conflict(code = 'CONFLICT', message = 'A record with this value already exists.') {
     return new ApiError(409, code, message);
   }
+
+  static tooMany(code = 'RATE_LIMITED', message = 'Too many requests. Slow down and try again.') {
+    return new ApiError(429, code, message);
+  }
 }
 
 module.exports = { ApiError };

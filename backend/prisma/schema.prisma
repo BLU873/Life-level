@@ -30,6 +30,7 @@ model User {
   rewards      CustomReward[]
   ownedRooms   FocusRoom[]      @relation("RoomOwner")
   roomMemberships RoomMembership[]
+  roomMessages RoomMessage[]
 }
 
 model Character {
@@ -208,6 +209,8 @@ model FocusRoom {
   agendaMode String  @default("INDIVIDUAL")
   // Owner-authored room-wide objective (SHARED mode). Empty when unused.
   agendaText String  @default("")
+  // Room chat kill-switch (owner-only). Session/presence ignore it.
+  chatEnabled Boolean @default(true)
   ownerId   String
   owner     User     @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   isActive  Boolean  @default(true)
@@ -216,6 +219,23 @@ model FocusRoom {
 
   memberships RoomMembership[]
   sessions    RoomSession[]
+  messages    RoomMessage[]
+}
+
+// Tactical room chat (Phase 19C). Append-only: no edits, deletes,
+// reactions, threads, or receipts. History renders as plain text.
+model RoomMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      FocusRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  // USER (operator text) or SYSTEM (joined/left notices).
+  kind      String   @default("USER")
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
 }
 
 model RoomSession {

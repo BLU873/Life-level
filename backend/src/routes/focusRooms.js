@@ -12,6 +12,8 @@ const {
   leaveRoom,
   updateRoom,
   changeRoomPassword,
+  sendMessage,
+  setChatEnabled,
   myRoom,
   startSession,
   pauseSession,
@@ -227,6 +229,43 @@ router.put(
   validate,
   asyncHandler(async (req, res) => {
     const room = await changeRoomPassword(req.userId, req.params.code, req.body.password);
+    return res.json({ success: true, data: { room } });
+  })
+);
+
+/**
+ * POST /api/focus-rooms/:code/messages
+ * Send a chat message (member-only, chat must be ON). Plain text, max 500
+ * chars, sliding-window rate cap. Returns the room (history included) so
+ * the sender renders instantly; polls deliver it to everyone else.
+ *   { body: string }
+ */
+router.post(
+  '/:code/messages',
+  authenticate,
+  codeParam,
+  body('body').exists().withMessage('Message is required.').bail().isString().withMessage('Message must be text.'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const room = await sendMessage(req.userId, req.params.code, req.body.body);
+    return res.status(201).json({ success: true, data: { room } });
+  })
+);
+
+/**
+ * PUT /api/focus-rooms/:code/chat
+ * Owner-only chat kill-switch. History stays visible; session and presence
+ * are unaffected. Propagates to members on their next poll.
+ *   { enabled: boolean }
+ */
+router.put(
+  '/:code/chat',
+  authenticate,
+  codeParam,
+  body('enabled').exists().withMessage('Enabled is required.').bail().isBoolean().withMessage('Enabled must be true or false.'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const room = await setChatEnabled(req.userId, req.params.code, req.body.enabled);
     return res.json({ success: true, data: { room } });
   })
 );
