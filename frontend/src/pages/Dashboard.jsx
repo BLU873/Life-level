@@ -440,7 +440,7 @@ export default function Dashboard() {
                     <HUDLabel tone="steel">Focus Room</HUDLabel>
                     <p className="tnum truncate font-mono text-[11px] uppercase tracking-[0.14em] text-text-2">
                       {focusRoom
-                        ? `${focusRoom.roomCode} · ${focusRoom.onlineCount} online`
+                        ? `${focusRoom.name || focusRoom.roomCode} · ${focusRoom.onlineCount} online`
                         : 'Squad up'}
                     </p>
                   </div>

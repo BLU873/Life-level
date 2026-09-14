@@ -204,6 +204,15 @@ model FocusRoom {
   id        String   @id @default(uuid())
   // Short human-friendly public code (e.g. V7K9P). Server-generated, unique.
   code      String   @unique
+  // Human-readable room name (e.g. DSA GRIND). Required for new rooms;
+  // legacy rows predate it and fall back to the migration default.
+  name      String   @default("SQUAD ROOM")
+  // bcrypt hash of the room password. Null only on pre-password legacy rows.
+  passwordHash String?
+  // INDIVIDUAL (default) or SHARED agenda mode.
+  agendaMode String  @default("INDIVIDUAL")
+  // Owner-authored room-wide objective (SHARED mode). Empty when unused.
+  agendaText String  @default("")
   ownerId   String
   owner     User     @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   isActive  Boolean  @default(true)

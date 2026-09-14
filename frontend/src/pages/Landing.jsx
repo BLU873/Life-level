@@ -27,7 +27,7 @@ export default function Landing() {
 
   return (
     <div className="entry">
-      <EntryNav />
+      <EntryNav marker="01 — LIFE//LEVEL" />
       <section className="entry-hero">
         <CharacterReveal />
 
@@ -71,14 +71,6 @@ export default function Landing() {
               <p className="entry-card__desc">Completed operations pay XP, gold, and attributes.</p>
             </motion.article>
           </div>
-
-          <motion.div
-            {...rise(0.48)}
-            className="entry-hero__page"
-            aria-hidden="true"
-          >
-            01 — LIFE//LEVEL
-          </motion.div>
 
           <motion.div {...rise(0.78)} className="entry-hero__specs">
             <h3>How it works</h3>

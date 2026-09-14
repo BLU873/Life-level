@@ -64,8 +64,11 @@ export default function RoomSessionPanel({
   onResume,
   onStop,
   onExpired,
+  // Prefill chosen at room creation (remounts per room via key).
+  // Never auto-starts — starting stays an explicit host action.
+  defaultMinutes = 25,
 }) {
-  const [minutes, setMinutes] = useState(25);
+  const [minutes, setMinutes] = useState(defaultMinutes);
   const [startingNew, setStartingNew] = useState(false);
   const remaining = useDisplayRemaining(session, sessionSeenAt);
 

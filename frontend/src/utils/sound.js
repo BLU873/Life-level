@@ -6,6 +6,10 @@ export const SOUNDS = {
   achievement: '/sounds/achievement.wav',
   'level-up': '/sounds/level-up.wav',
   'operation-created': '/sounds/mixkit-sci-fi-click-900.wav',
+  // User-supplied room creation sound. Drop the file at
+  // frontend/public/sounds/focus-room-created.mp3 to enable; until then
+  // playSound() fails silently and rooms work without audio.
+  'focus-room-created': '/sounds/focus-room-created.mp3',
 };
 
 const audioCache = new Map();

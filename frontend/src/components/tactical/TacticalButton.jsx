@@ -6,6 +6,7 @@ const VARIANTS = {
   steel: 'bg-surface-2 text-text border border-line hover:bg-surface-3',
   danger: 'bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20',
   gold: 'bg-warning/10 text-warning border border-warning/30 hover:bg-warning/20',
+  violet: 'bg-violet-500/15 text-violet-200 border border-violet-400/30 hover:bg-violet-500/25',
 };
 
 const SIZES = {

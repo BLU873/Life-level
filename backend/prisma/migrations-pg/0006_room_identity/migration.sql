@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "FocusRoom" ADD COLUMN     "name" TEXT NOT NULL DEFAULT 'SQUAD ROOM',
+ADD COLUMN     "passwordHash" TEXT,
+ADD COLUMN     "agendaMode" TEXT NOT NULL DEFAULT 'INDIVIDUAL',
+ADD COLUMN     "agendaText" TEXT NOT NULL DEFAULT '';

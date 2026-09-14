@@ -10,6 +10,8 @@ const {
   getRoom,
   heartbeat,
   leaveRoom,
+  updateRoom,
+  changeRoomPassword,
   myRoom,
   startSession,
   pauseSession,
@@ -30,30 +32,45 @@ const questIdChain = (field) =>
 
 /**
  * POST /api/focus-rooms
- * Create a room. The creator joins automatically as owner.
+ * Create a room (name + password + agenda mode). The creator joins
+ * automatically as owner. The password is hashed; never returned.
+ *   { name, password, agendaMode?: 'SHARED' | 'INDIVIDUAL', agendaText?: string }
  */
 router.post(
   '/',
   authenticate,
+  body('name').exists().withMessage('Room name is required.').bail().isString().withMessage('Room name must be a string.'),
+  body('password').exists().withMessage('Room password is required.').bail().isString().withMessage('Room password must be a string.'),
+  body('agendaMode').optional().isString().withMessage('Agenda mode must be a string.'),
+  body('agendaText').optional().isString().withMessage('Shared agenda must be a string.'),
+  validate,
   asyncHandler(async (req, res) => {
-    const room = await createRoom(req.userId);
+    const room = await createRoom(req.userId, {
+      name: req.body.name,
+      password: req.body.password,
+      agendaMode: req.body.agendaMode,
+      agendaText: req.body.agendaText,
+    });
     return res.status(201).json({ success: true, data: { room } });
   })
 );
 
 /**
  * POST /api/focus-rooms/join
- * Join by public room code. Idempotent: rejoining returns the same room.
- *   { code: 'V7K9P', questId?: string | null }
+ * Join by public room code + password. Idempotent: rejoining returns the
+ * same room without re-checking the password. Wrong password creates
+ * nothing and reveals nothing beyond the rejection.
+ *   { code: 'V7K9P', password?: string, questId?: string | null }
  */
 router.post(
   '/join',
   authenticate,
   body('code').exists().withMessage('Room code is required.').bail().isString().withMessage('Room code must be a string.'),
+  body('password').optional().isString().withMessage('Room password must be a string.'),
   questIdChain('questId'),
   validate,
   asyncHandler(async (req, res) => {
-    const { room, rejoined } = await joinRoom(req.userId, req.body.code, req.body.questId);
+    const { room, rejoined } = await joinRoom(req.userId, req.body.code, req.body.questId, req.body.password);
     return res.status(rejoined ? 200 : 201).json({ success: true, data: { room, rejoined } });
   })
 );
@@ -169,6 +186,47 @@ router.post(
   validate,
   asyncHandler(async (req, res) => {
     const room = await stopSession(req.userId, req.params.code);
+    return res.json({ success: true, data: { room } });
+  })
+);
+
+/**
+ * PUT /api/focus-rooms/:code
+ * Owner-only room setup edits (name / agenda mode / shared agenda).
+ * Never touches the shared session, memberships, or progression.
+ *   { name?: string, agendaMode?: 'SHARED' | 'INDIVIDUAL', agendaText?: string }
+ */
+router.put(
+  '/:code',
+  authenticate,
+  codeParam,
+  body('name').optional().isString().withMessage('Room name must be a string.'),
+  body('agendaMode').optional().isString().withMessage('Agenda mode must be a string.'),
+  body('agendaText').optional().isString().withMessage('Shared agenda must be a string.'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const room = await updateRoom(req.userId, req.params.code, {
+      name: req.body.name,
+      agendaMode: req.body.agendaMode,
+      agendaText: req.body.agendaText,
+    });
+    return res.json({ success: true, data: { room } });
+  })
+);
+
+/**
+ * PUT /api/focus-rooms/:code/password
+ * Owner-only password rotation (bcrypt-hashed, never returned).
+ *   { password: string }
+ */
+router.put(
+  '/:code/password',
+  authenticate,
+  codeParam,
+  body('password').exists().withMessage('Room password is required.').bail().isString().withMessage('Room password must be a string.'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const room = await changeRoomPassword(req.userId, req.params.code, req.body.password);
     return res.json({ success: true, data: { room } });
   })
 );

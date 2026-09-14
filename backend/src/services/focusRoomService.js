@@ -1,5 +1,8 @@
+const bcrypt = require('bcrypt');
 const prisma = require('../lib/prisma');
 const { ApiError } = require('../utils/apiError');
+
+const BCRYPT_ROUNDS = 10;
 
 /**
  * Focus Rooms (squad foundation).
@@ -40,6 +43,48 @@ function normalizeCode(value) {
 
 function isCodeFormat(value) {
   return /^[A-Z2-9]{4,6}$/.test(value);
+}
+
+const AGENDA_MODES = ['SHARED', 'INDIVIDUAL'];
+const ROOM_NAME_MAX = 60;
+const ROOM_PASSWORD_MIN = 4;
+const ROOM_PASSWORD_MAX = 72; // bcrypt input limit
+const AGENDA_TEXT_MAX = 200;
+
+function validateRoomName(value) {
+  const name = String(value ?? '').trim();
+  if (!name) throw ApiError.badRequest('ROOM_NAME_REQUIRED', 'Room name is required.');
+  if (name.length > ROOM_NAME_MAX) {
+    throw ApiError.badRequest('ROOM_NAME_INVALID', `Room name must be ${ROOM_NAME_MAX} characters or fewer.`);
+  }
+  return name;
+}
+
+function validateRoomPassword(value) {
+  const password = String(value ?? '');
+  if (!password) throw ApiError.badRequest('ROOM_PASSWORD_REQUIRED', 'Room password is required.');
+  if (password.length < ROOM_PASSWORD_MIN || password.length > ROOM_PASSWORD_MAX) {
+    throw ApiError.badRequest(
+      'ROOM_PASSWORD_INVALID',
+      `Room password must be between ${ROOM_PASSWORD_MIN} and ${ROOM_PASSWORD_MAX} characters.`
+    );
+  }
+  return password;
+}
+
+function validateAgendaMode(value) {
+  if (!AGENDA_MODES.includes(value)) {
+    throw ApiError.badRequest('ROOM_MODE_INVALID', 'Agenda mode must be SHARED or INDIVIDUAL.');
+  }
+  return value;
+}
+
+function validateAgendaText(value) {
+  const text = String(value ?? '').trim();
+  if (text.length > AGENDA_TEXT_MAX) {
+    throw ApiError.badRequest('ROOM_AGENDA_INVALID', `Shared agenda must be ${AGENDA_TEXT_MAX} characters or fewer.`);
+  }
+  return text;
 }
 
 function tagFor(username, randomizeLetters = false) {
@@ -318,6 +363,11 @@ async function roomPayload(roomId, viewerId, tx = prisma) {
 
   return {
     roomCode: room.code,
+    // Identity/agenda are owner-authored room content, safe for members.
+    // The password hash is NEVER included.
+    name: room.name || 'SQUAD ROOM',
+    agendaMode: AGENDA_MODES.includes(room.agendaMode) ? room.agendaMode : 'INDIVIDUAL',
+    agendaText: room.agendaText || '',
     createdAt: room.createdAt,
     isOwner: room.ownerId === viewerId,
     onlineCount: members.filter((m) => m.status === 'ONLINE').length,
@@ -338,7 +388,12 @@ async function requireMembership(userId, code, tx = prisma) {
   return { room, membership };
 }
 
-async function createRoom(userId) {
+async function createRoom(userId, { name, password, agendaMode = 'INDIVIDUAL', agendaText = '' } = {}) {
+  const cleanName = validateRoomName(name);
+  const cleanPassword = validateRoomPassword(password);
+  const cleanMode = validateAgendaMode(agendaMode);
+  const cleanAgenda = validateAgendaText(agendaText);
+
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const createdToday = await prisma.focusRoom.count({ where: { ownerId: userId, createdAt: { gte: dayAgo } } });
   if (createdToday >= CREATE_LIMIT_PER_DAY) {
@@ -347,6 +402,8 @@ async function createRoom(userId) {
   if (await activeMembership(userId)) {
     throw ApiError.conflict('ROOM_ALREADY_INSIDE', 'Leave your current room before creating a new one.');
   }
+
+  const passwordHash = await bcrypt.hash(cleanPassword, BCRYPT_ROUNDS);
 
   return prisma.$transaction(async (tx) => {
     let code = null;
@@ -360,14 +417,16 @@ async function createRoom(userId) {
     }
     if (!code) throw ApiError.conflict('ROOM_CODE_EXHAUSTED', 'Could not allocate a room code. Try again.');
 
-    const room = await tx.focusRoom.create({ data: { code, ownerId: userId } });
+    const room = await tx.focusRoom.create({
+      data: { code, ownerId: userId, name: cleanName, passwordHash, agendaMode: cleanMode, agendaText: cleanAgenda },
+    });
     await tx.roomMembership.create({ data: { roomId: room.id, userId, lastSeenAt: new Date() } });
     await ensurePlayerTag(userId, tx);
     return roomPayload(room.id, userId, tx);
   });
 }
 
-async function joinRoom(userId, rawCode, questId = undefined) {
+async function joinRoom(userId, rawCode, questId = undefined, password = undefined) {
   const code = normalizeCode(rawCode);
   if (!isCodeFormat(code)) throw ApiError.notFound('ROOM_NOT_FOUND', 'Room not found.');
 
@@ -385,6 +444,7 @@ async function joinRoom(userId, rawCode, questId = undefined) {
     const existing = await tx.roomMembership.findFirst({ where: { roomId: room.id, userId, leftAt: null } });
     if (existing) {
       // Idempotent rejoin: optionally refresh the public goal, never duplicate.
+      // No password needed — membership already proves access (refresh-safe).
       if (questId !== undefined) {
         const nextGoal = questId === null ? null : await validateGoalQuest(userId, questId, tx);
         await tx.roomMembership.update({ where: { id: existing.id }, data: { goalQuestId: nextGoal, lastSeenAt: new Date() } });
@@ -392,6 +452,13 @@ async function joinRoom(userId, rawCode, questId = undefined) {
         await tx.roomMembership.update({ where: { id: existing.id }, data: { lastSeenAt: new Date() } });
       }
       return { room: await roomPayload(room.id, userId, tx), rejoined: true };
+    }
+
+    // Password gate BEFORE any write: no partial membership on failure.
+    // Legacy rooms without a hash stay open (backward compatible).
+    if (room.passwordHash) {
+      const ok = await bcrypt.compare(String(password ?? ''), room.passwordHash);
+      if (!ok) throw ApiError.forbidden('ROOM_PASSWORD_INVALID', 'Incorrect room password.');
     }
 
     if (await activeMembership(userId, tx)) {
@@ -452,6 +519,40 @@ async function leaveRoom(userId, rawCode) {
   });
 }
 
+/**
+ * Owner-only room setup edits (name / agenda mode / shared agenda).
+ * Never touches the shared session, memberships, or progression.
+ */
+async function updateRoom(userId, rawCode, { name, agendaMode, agendaText } = {}) {
+  const code = normalizeCode(rawCode);
+  if (!isCodeFormat(code)) throw ApiError.notFound('ROOM_NOT_FOUND', 'Room not found.');
+  if (name === undefined && agendaMode === undefined && agendaText === undefined) {
+    throw ApiError.badRequest('ROOM_NOTHING_TO_UPDATE', 'Nothing to update.');
+  }
+  return prisma.$transaction(async (tx) => {
+    const { room } = await requireHost(userId, code, tx);
+    const data = {};
+    if (name !== undefined) data.name = validateRoomName(name);
+    if (agendaMode !== undefined) data.agendaMode = validateAgendaMode(agendaMode);
+    if (agendaText !== undefined) data.agendaText = validateAgendaText(agendaText);
+    await tx.focusRoom.update({ where: { id: room.id }, data });
+    return roomPayload(room.id, userId, tx);
+  });
+}
+
+/** Owner-only password rotation (bcrypt, same rounds as auth). */
+async function changeRoomPassword(userId, rawCode, password) {
+  const code = normalizeCode(rawCode);
+  if (!isCodeFormat(code)) throw ApiError.notFound('ROOM_NOT_FOUND', 'Room not found.');
+  const cleanPassword = validateRoomPassword(password);
+  return prisma.$transaction(async (tx) => {
+    const { room } = await requireHost(userId, code, tx);
+    const passwordHash = await bcrypt.hash(cleanPassword, BCRYPT_ROUNDS);
+    await tx.focusRoom.update({ where: { id: room.id }, data: { passwordHash } });
+    return roomPayload(room.id, userId, tx);
+  });
+}
+
 async function myRoom(userId) {
   const membership = await activeMembership(userId);
   if (!membership) return null;
@@ -471,6 +572,8 @@ module.exports = {
   getRoom,
   heartbeat,
   leaveRoom,
+  updateRoom,
+  changeRoomPassword,
   myRoom,
   ensurePlayerTag,
   normalizeCode,

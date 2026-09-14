@@ -8,10 +8,14 @@ import Toast from '../components/ui/Toast';
 import Input from '../components/ui/Input';
 import {
   TacticalPanel,
+  HUDLabel,
   SectionHeader,
   TacticalButton,
 } from '../components/tactical';
 import RoomSessionPanel from '../components/focus/RoomSessionPanel';
+import { playSound } from '../utils/sound';
+
+const CREATE_MINUTES = [15, 25, 45, 60, 90];
 
 // Presence contract with the server: heartbeat every 20s, ONLINE while the
 // server saw this client within the last 60s, room state polled every 15s.
@@ -41,6 +45,147 @@ function MemberRow({ member }) {
         </p>
       </div>
     </li>
+  );
+}
+
+function ModePills({ value, onChange, disabled, labelledBy }) {
+  return (
+    <div className="flex rounded-[4px] border border-line bg-surface p-0.5" role="group" aria-labelledby={labelledBy}>
+      {[
+        { value: 'SHARED', label: 'Shared Agenda' },
+        { value: 'INDIVIDUAL', label: 'Individual Goals' },
+      ].map(({ value: v, label }) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={value === v}
+          disabled={disabled}
+          onClick={() => onChange(v)}
+          className={`
+            rounded-[3px] px-4 h-9 font-mono text-[11px] uppercase tracking-[0.16em]
+            transition-colors duration-150 disabled:opacity-50
+            ${value === v ? 'bg-tact/10 text-tact' : 'text-text-2 hover:text-text'}
+          `}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DurationPills({ value, onChange, disabled, labelledBy }) {
+  return (
+    <div className="flex flex-wrap gap-2" role="group" aria-labelledby={labelledBy}>
+      {CREATE_MINUTES.map((mins) => (
+        <button
+          key={mins}
+          type="button"
+          aria-pressed={value === mins}
+          disabled={disabled}
+          onClick={() => onChange(mins)}
+          className={`
+            tnum rounded-[4px] border px-3 h-10 font-mono text-[11px] uppercase tracking-[0.14em]
+            transition-colors duration-150 disabled:opacity-50
+            ${value === mins ? 'border-tact/60 bg-tact/10 text-tact' : 'border-line bg-surface text-text-2 hover:text-text'}
+          `}
+        >
+          {mins} min
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RoomSettings({ room, notify, onSaved }) {
+  const [name, setName] = useState(room.name || '');
+  const [mode, setMode] = useState(room.agendaMode === 'SHARED' ? 'SHARED' : 'INDIVIDUAL');
+  const [agenda, setAgenda] = useState(room.agendaText || '');
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(null);
+
+  async function saveSetup(e) {
+    e?.preventDefault();
+    if (saving) return;
+    setSaving('setup');
+    try {
+      const res = await api.put(`/focus-rooms/${room.roomCode}`, {
+        name: name.trim(),
+        agendaMode: mode,
+        agendaText: mode === 'SHARED' ? agenda.trim() : '',
+      });
+      onSaved(res.data.data.room);
+      notify('Room updated.');
+    } catch (err) {
+      notify(err.response?.data?.error || 'Could not update the room.', 'error');
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function savePassword(e) {
+    e?.preventDefault();
+    if (saving || !password) return;
+    setSaving('password');
+    try {
+      const res = await api.put(`/focus-rooms/${room.roomCode}/password`, { password });
+      onSaved(res.data.data.room);
+      setPassword('');
+      notify('Room password updated.');
+    } catch (err) {
+      notify(err.response?.data?.error || 'Could not update the password.', 'error');
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <form className="space-y-3" onSubmit={saveSetup}>
+        <Input
+          label="Room name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={60}
+          required
+          autoComplete="off"
+        />
+        <div className="space-y-1.5">
+          <span id={`mode-${room.roomCode}`} className="block font-mono text-[11px] uppercase tracking-[0.18em] text-steel">
+            Agenda mode
+          </span>
+          <ModePills value={mode} onChange={setMode} disabled={saving !== null} labelledBy={`mode-${room.roomCode}`} />
+        </div>
+        {mode === 'SHARED' && (
+          <Input
+            label="Shared agenda"
+            value={agenda}
+            onChange={(e) => setAgenda(e.target.value)}
+            maxLength={200}
+            placeholder="e.g. Complete Arrays + Linked Lists"
+            autoComplete="off"
+          />
+        )}
+        <TacticalButton type="submit" variant="steel" size="md" className="w-full sm:w-auto" disabled={saving !== null}>
+          {saving === 'setup' ? 'Saving…' : 'Save Room'}
+        </TacticalButton>
+      </form>
+      <form className="space-y-3 border-t border-line pt-4" onSubmit={savePassword}>
+        <Input
+          label="New room password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          maxLength={72}
+          required
+          autoComplete="new-password"
+          hint="Members already inside stay inside."
+        />
+        <TacticalButton type="submit" variant="steel" size="md" className="w-full sm:w-auto" disabled={saving !== null || !password}>
+          {saving === 'password' ? 'Updating…' : 'Change Password'}
+        </TacticalButton>
+      </form>
+    </div>
   );
 }
 
@@ -76,7 +221,16 @@ export default function FocusRoom() {
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
   const [joinCode, setJoinCode] = useState('');
+  const [joinPassword, setJoinPassword] = useState('');
   const [joinGoal, setJoinGoal] = useState(null);
+  const [createName, setCreateName] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createMode, setCreateMode] = useState('INDIVIDUAL');
+  const [createAgenda, setCreateAgenda] = useState('');
+  const [createMinutes, setCreateMinutes] = useState(25);
+  // Session-duration choice per created room (prefills the READY panel;
+  // never auto-starts — starting stays an explicit host action).
+  const [sessionDefaults, setSessionDefaults] = useState({});
   const [roomGoal, setRoomGoal] = useState(null); // selected goal id for updates
   const [goalSynced, setGoalSynced] = useState(true);
   const [quests, setQuests] = useState([]);
@@ -209,14 +363,28 @@ export default function FocusRoom() {
     };
   }, [room ? room.roomCode : null, loadMine]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleCreate() {
+  async function handleCreate(e) {
+    e?.preventDefault();
     if (busy) return;
     setBusy('create');
     try {
-      const res = await api.post('/focus-rooms', {});
-      adoptRoom(res.data.data.room);
+      const res = await api.post('/focus-rooms', {
+        name: createName.trim(),
+        password: createPassword,
+        agendaMode: createMode,
+        agendaText: createMode === 'SHARED' ? createAgenda.trim() : '',
+      });
+      const created = res.data.data.room;
+      adoptRoom(created);
+      setSessionDefaults((m) => ({ ...m, [created.roomCode]: createMinutes }));
+      // Clear secrets immediately; the password lives server-side (hashed) only.
+      setCreateName('');
+      setCreatePassword('');
+      setCreateAgenda('');
       setJoinCode('');
-      notify(`Room ${res.data.data.room.roomCode} created.`);
+      // Exactly once, on the success path only.
+      playSound('focus-room-created');
+      notify(`Room ${created.name} created.`);
     } catch (err) {
       notify(err.response?.data?.error || 'Could not create the room.', 'error');
     } finally {
@@ -230,9 +398,10 @@ export default function FocusRoom() {
     if (!code || busy) return;
     setBusy('join');
     try {
-      const res = await api.post('/focus-rooms/join', { code, questId: joinGoal });
+      const res = await api.post('/focus-rooms/join', { code, questId: joinGoal, password: joinPassword });
       adoptRoom(res.data.data.room);
       setJoinCode('');
+      setJoinPassword('');
       setJoinGoal(null);
       notify(res.data.data.rejoined ? `Rejoined room ${code}.` : `Joined room ${code}.`);
     } catch (err) {
@@ -388,16 +557,16 @@ export default function FocusRoom() {
       >
         <TacticalPanel>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-tact/30 bg-tact/10 text-tact">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-violet-400/30 bg-violet-500/10 text-violet-200">
                 <Users size={18} />
               </div>
-              <div>
-                <h1 className="font-ui text-sm font-semibold uppercase tracking-[0.2em] text-text">
-                  Focus Room{room ? ` // ${room.roomCode}` : ''}
+              <div className="min-w-0">
+                <h1 className="truncate font-ui text-sm font-semibold uppercase tracking-[0.2em] text-text">
+                  Focus Room{room ? ` // ${room.name || room.roomCode}` : ''}
                 </h1>
-                <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-steel">
-                  {room ? `${room.onlineCount} operator${room.onlineCount === 1 ? '' : 's'} online` : 'Shared workspace'}
+                <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-steel">
+                  {room ? `Room // ${room.roomCode} · ${room.onlineCount} operator${room.onlineCount === 1 ? '' : 's'} online` : 'Shared workspace'}
                 </p>
               </div>
             </div>
@@ -416,19 +585,81 @@ export default function FocusRoom() {
         </TacticalPanel>
       </motion.div>
 
+      {room && (
+        <TacticalPanel className="min-w-0">
+          <HUDLabel tone="steel">Room Agenda</HUDLabel>
+          {room.agendaMode === 'SHARED' ? (
+            room.agendaText ? (
+              <p className="mt-1.5 break-words font-ui text-lg font-semibold uppercase tracking-[0.08em] text-text">
+                {room.agendaText}
+              </p>
+            ) : (
+              <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-text-3">
+                Shared agenda — empty.
+              </p>
+            )
+          ) : (
+            <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-text-3">
+              Individual goals
+            </p>
+          )}
+        </TacticalPanel>
+      )}
+
       {!room ? (
         <div className="grid items-start gap-3 md:grid-cols-2">
           <TacticalPanel brackets>
             <SectionHeader index="01" title="Create Room" />
-            <p className="mt-3 text-sm text-text-2">
-              Open a room and share the code. You join automatically as owner.
-            </p>
-            <div className="mt-4">
-              <TacticalButton variant="primary" size="md" className="w-full sm:w-auto" disabled={busy !== null} onClick={handleCreate}>
+            <form className="mt-3 space-y-3" onSubmit={handleCreate}>
+              <Input
+                label="Room name"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder="e.g. DSA GRIND"
+                maxLength={60}
+                required
+                autoComplete="off"
+              />
+              <Input
+                label="Password"
+                type="password"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                maxLength={72}
+                required
+                autoComplete="new-password"
+                hint="Shared with friends so they can join."
+              />
+              <div className="space-y-1.5">
+                <span id="create-mode" className="block font-mono text-[11px] uppercase tracking-[0.18em] text-steel">
+                  Agenda mode
+                </span>
+                <ModePills value={createMode} onChange={setCreateMode} disabled={busy !== null} labelledBy="create-mode" />
+              </div>
+              {createMode === 'SHARED' && (
+                <Input
+                  label="Shared agenda"
+                  value={createAgenda}
+                  onChange={(e) => setCreateAgenda(e.target.value)}
+                  placeholder="e.g. Complete Arrays + Linked Lists"
+                  maxLength={200}
+                  autoComplete="off"
+                />
+              )}
+              <div className="space-y-1.5">
+                <span id="create-duration" className="block font-mono text-[11px] uppercase tracking-[0.18em] text-steel">
+                  Session duration
+                </span>
+                <DurationPills value={createMinutes} onChange={setCreateMinutes} disabled={busy !== null} labelledBy="create-duration" />
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-3">
+                  Prefills the session timer. Nothing starts yet.
+                </p>
+              </div>
+              <TacticalButton type="submit" variant="violet" size="md" className="w-full sm:w-auto" disabled={busy !== null}>
                 <Plus size={14} />
                 {busy === 'create' ? 'Creating…' : 'Create Room'}
               </TacticalButton>
-            </div>
+            </form>
           </TacticalPanel>
 
           <TacticalPanel brackets>
@@ -440,6 +671,16 @@ export default function FocusRoom() {
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
                 placeholder="e.g. V7K9P"
                 maxLength={6}
+                required
+                autoComplete="off"
+              />
+              <Input
+                label="Password"
+                type="password"
+                value={joinPassword}
+                onChange={(e) => setJoinPassword(e.target.value)}
+                maxLength={72}
+                required
                 autoComplete="off"
               />
               <GoalSelect id="join-goal" quests={quests} value={joinGoal || ''} onChange={setJoinGoal} disabled={busy !== null} />
@@ -484,9 +725,11 @@ export default function FocusRoom() {
           </TacticalPanel>
 
           <RoomSessionPanel
+            key={room.roomCode}
             session={room.session || null}
             sessionSeenAt={roomAt}
             isHost={room.isOwner}
+            defaultMinutes={sessionDefaults[room.roomCode] ?? 25}
             busy={sessionBusy}
             error={sessionError}
             onStart={(durationSeconds) => sessionAction('start', durationSeconds)}
@@ -516,6 +759,20 @@ export default function FocusRoom() {
               </p>
             </div>
           </TacticalPanel>
+
+          {room.isOwner && (
+            <TacticalPanel brackets>
+              <SectionHeader index="03" title="Room Settings" />
+              <div className="mt-3">
+                <RoomSettings
+                  key={room.roomCode}
+                  room={room}
+                  notify={notify}
+                  onSaved={adoptRoom}
+                />
+              </div>
+            </TacticalPanel>
+          )}
 
           <TacticalButton variant="danger" size="md" className="w-full sm:w-auto" disabled={busy !== null} onClick={handleLeave}>
             <LogOut size={14} />
