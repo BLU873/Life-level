@@ -228,6 +228,20 @@ export default function Dashboard() {
     : null;
   const showFocusPanel = Boolean(focusTimer.session || focusTimer.justCompleted);
 
+  // Today's arc — derived entirely from already-loaded responses.
+  const focusMinutesToday = focusTimer.history
+    ? Math.round((focusTimer.history.today?.seconds ?? 0) / 60)
+    : null;
+  const medalToday = (() => {
+    const today = new Date().toDateString();
+    const unlocked = achievements.filter(
+      (a) => a.unlockedAt && new Date(a.unlockedAt).toDateString() === today
+    );
+    unlocked.sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt));
+    return unlocked[0] || null;
+  })();
+  const roomSessionStatus = focusRoom?.session?.status || null;
+
   return (
     <div className="dash-page">
       <div className="dash-hero-wrap">
@@ -443,6 +457,21 @@ export default function Dashboard() {
                         ? `${focusRoom.name || focusRoom.roomCode} · ${focusRoom.onlineCount} online`
                         : 'Squad up'}
                     </p>
+                    {roomSessionStatus === 'RUNNING' && (
+                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text">
+                        Session // Live
+                      </p>
+                    )}
+                    {roomSessionStatus === 'PAUSED' && (
+                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-warning">
+                        Session // Paused
+                      </p>
+                    )}
+                    {roomSessionStatus === 'COMPLETED' && (
+                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-success">
+                        Session // Complete
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Link
@@ -508,8 +537,15 @@ export default function Dashboard() {
                           <span className="min-w-0 truncate text-sm text-text-2 group-hover:text-tact">
                             {q.title}
                           </span>
-                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-steel">
-                            {CATEGORY_LABEL[q.category] || q.category}
+                          <span className="flex shrink-0 items-center gap-2">
+                            {focusTimer.session?.questId === q.id && (
+                              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-tact">
+                                Focus
+                              </span>
+                            )}
+                            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-steel">
+                              {CATEGORY_LABEL[q.category] || q.category}
+                            </span>
                           </span>
                         </Link>
                       ))}
@@ -524,53 +560,48 @@ export default function Dashboard() {
               </TacticalPanel>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <TacticalPanel>
-                <SectionHeader index="03" title="Daily Operations" />
-                <div className="mt-4 flex flex-col gap-4">
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <HUDLabel tone="steel">Today&apos;s Arc</HUDLabel>
-                      <span className="font-mono text-xs text-text">
-                        <b className="tnum text-base text-text">{dailyProgress?.completedQuests ?? 0}</b>
-                        <span className="text-text-3"> / {dailyProgress?.totalQuests ?? 0} complete</span>
-                      </span>
-                    </div>
-                    <ProgressBar
-                      value={dailyProgress?.completedQuests ?? 0}
-                      max={Math.max(1, dailyProgress?.totalQuests ?? 1)}
-                      color={dailyProgress?.isComplete ? 'success' : 'tact'}
-                      segments={arcSegments}
-                    />
-                  </div>
+            <TacticalPanel>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <HUDLabel tone="steel">Today&apos;s Arc</HUDLabel>
+                {dailyProgress?.isComplete && dailyProgress?.totalQuests > 0 ? (
+                  <StatusBadge status="ready" label="Arc Complete" />
+                ) : (dailyProgress?.totalQuests ?? 0) === 0 ? (
+                  <Link
+                    to="/quests"
+                    className="flex shrink-0 items-center gap-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-tact hover:text-tact-2"
+                  >
+                    Plan in War Room
+                    <ArrowRight size={11} />
+                  </Link>
+                ) : null}
+              </div>
+              <div className="mt-2.5">
+                <ProgressBar
+                  value={dailyProgress?.completedQuests ?? 0}
+                  max={Math.max(1, dailyProgress?.totalQuests ?? 1)}
+                  color={dailyProgress?.isComplete ? 'success' : 'tact'}
+                  segments={arcSegments}
+                />
+              </div>
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px] uppercase tracking-[0.14em]">
+                <span className="tnum text-text">
+                  <span className="font-semibold">{dailyProgress?.completedQuests ?? 0}</span>
+                  <span className="text-text-3"> / {dailyProgress?.totalQuests ?? 0} operations</span>
+                </span>
+                <span className="tnum text-tact">+{dailyProgress?.xpEarned ?? 0} XP</span>
+                {focusMinutesToday !== null && (
+                  <span className="tnum text-text-2">Focus {focusMinutesToday} min</span>
+                )}
+                <span className="tnum text-text-2">Streak {character.currentStreak ?? 0}d</span>
+                {medalToday && (
+                  <span className="tnum truncate text-warning">Medal // {medalToday.name}</span>
+                )}
+              </div>
+            </TacticalPanel>
 
-                  <div className="grid grid-cols-3 gap-3 border-t border-line pt-4">
-                    <div>
-                      <HUDLabel tone="steel">XP Earned</HUDLabel>
-                      <p className="tnum mt-1 font-mono text-sm text-tact">
-                        +{dailyProgress?.xpEarned ?? 0}
-                      </p>
-                    </div>
-                    <div>
-                      <HUDLabel tone="steel">Gold</HUDLabel>
-                      <p className="tnum mt-1 font-mono text-sm text-warning">
-                        +{dailyProgress?.goldEarned ?? 0}
-                      </p>
-                    </div>
-                    <div>
-                      <HUDLabel tone="steel">Streak</HUDLabel>
-                      <p className="tnum mt-1 flex items-center gap-1 font-mono text-sm text-text">
-                        <Flame size={13} className="text-tact" />
-                        {character.currentStreak ?? 0}d
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TacticalPanel>
-
-              <TacticalPanel>
+            <TacticalPanel>
                 <SectionHeader
-                  index="04"
+                  index="03"
                   title="Progression"
                   action={
                     <Link
@@ -593,7 +624,6 @@ export default function Dashboard() {
                   ))}
                 </div>
               </TacticalPanel>
-            </div>
           </div>
         )}
       </div>

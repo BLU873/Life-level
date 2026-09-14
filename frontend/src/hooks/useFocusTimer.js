@@ -33,7 +33,12 @@ export function formatCountdown(totalSecs) {
 
 export async function fetchActiveFocus() {
   const res = await api.get('/focus');
-  return res.data.data.session || null;
+  return {
+    session: res.data.data.session || null,
+    // History rides the same response (today/week/month focus totals) —
+    // no extra request needed by consumers such as the daily arc.
+    history: res.data.data.history || null,
+  };
 }
 
 export function isFocusConflict(err) {
@@ -61,6 +66,7 @@ export function focusErrorMessage(err, fallback) {
 
 export function useFocusTimer() {
   const [session, setSession] = useState(null);
+  const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null); // 'pause' | 'resume' | 'stop' | 'complete' | null
   const [error, setError] = useState('');
@@ -70,8 +76,9 @@ export function useFocusTimer() {
 
   const refresh = useCallback(async () => {
     try {
-      const active = await fetchActiveFocus();
+      const { session: active, history: hist } = await fetchActiveFocus();
       setSession(active);
+      setHistory(hist);
       return active;
     } catch {
       return null;
@@ -82,8 +89,10 @@ export function useFocusTimer() {
     let cancelled = false;
     setLoading(true);
     fetchActiveFocus()
-      .then((active) => {
-        if (!cancelled) setSession(active);
+      .then(({ session: active, history: hist }) => {
+        if (cancelled) return;
+        setSession(active);
+        setHistory(hist);
       })
       .catch(() => {
         // Focus is optional surface — never break the page if it fails.
@@ -175,6 +184,7 @@ export function useFocusTimer() {
 
   return {
     session,
+    history,
     loading,
     busy,
     error,
